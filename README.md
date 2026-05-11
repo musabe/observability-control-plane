@@ -24,31 +24,7 @@ A production-like microservices environment with real traffic, real metrics, and
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Python Orchestrator                                             │
-│  fault_injector.py · detector.py · correlator.py · rca_gen.py  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTP fault injection APIs
-        ┌──────────────────────┼───────────────────────┐
-        ▼                      ▼                       ▼
-┌───────────────┐   ┌──────────────────┐   ┌──────────────────────┐
-│  api-gateway  │   │   db-service     │   │   queue-worker       │
-│  (Go) :8080   │──▶│   (Go) :8081     │   │   (Go) :8082         │
-│               │   │   PostgreSQL     │   │   RabbitMQ consumer  │
-└───────┬───────┘   └──────────────────┘   └──────────────────────┘
-        │ RabbitMQ                                      ▲
-        └──────────────────────────────────────────────┘
-        
-┌───────────────────┐   ┌────────────────────┐
-│  background-job   │   │  Prometheus :9090   │◀─ scrapes all services
-│  (Go) :8083       │   │  Grafana :3000      │
-│  Redis            │   └────────────────────┘
-└───────────────────┘
-
-Backing services: PostgreSQL · Redis · RabbitMQ
-Exporters:        postgres-exporter · redis-exporter
-```
+![Architecture](docs/screenshots/architecture.png)
 
 ---
 
