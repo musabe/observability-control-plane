@@ -1,0 +1,36 @@
+name: Database Service Availability
+service: db-service
+version: "1.0"
+
+objective:
+  target: 99.95%
+  window: 30d
+
+sli:
+  description: Proportion of DB queries succeeding
+  prometheus_query: |
+    sum(rate(db_service_queries_total{status="ok"}[5m]))
+    /
+    sum(rate(db_service_queries_total[5m]))
+  good_threshold: 0.9995
+
+connection_pool_slo:
+  max_utilisation_pct: 90
+  max_wait_time_ms: 500
+
+query_latency_targets:
+  p95_ms: 100
+  p99_ms: 500
+
+burn_rate_alerts:
+  - window: 1h
+    burn_rate: 14.4
+    severity: critical
+    action: "Page DBA on-call — connection pool exhaustion risk"
+  - window: 6h
+    burn_rate: 6
+    severity: warning
+    action: "Review connection pool sizing"
+
+runbook: runbooks/db-exhaustion.md
+dashboard: dashboards/db-service.json

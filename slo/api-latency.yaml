@@ -1,0 +1,47 @@
+name: API Gateway p99 Latency
+service: api-gateway
+version: "1.0"
+
+objective:
+  target: 99.9%
+  window: 30d
+
+sli:
+  description: Proportion of requests completing within 500ms
+  prometheus_query: |
+    sum(rate(api_gateway_request_duration_seconds_bucket{le="0.5"}[5m]))
+    /
+    sum(rate(api_gateway_request_duration_seconds_count[5m]))
+  good_threshold: 0.999
+
+latency_targets:
+  p50_ms: 50
+  p95_ms: 200
+  p99_ms: 500
+  p999_ms: 2000
+
+burn_rate_alerts:
+  - window: 1h
+    burn_rate: 14.4
+    severity: critical
+    action: "Page on-call immediately"
+  - window: 6h
+    burn_rate: 6
+    severity: warning
+    action: "Create incident ticket"
+  - window: 3d
+    burn_rate: 1
+    severity: info
+    action: "Review in weekly SRE meeting"
+
+error_budget:
+  monthly_minutes: 43.8   # 99.9% of 30d * 24h * 60m
+  current_burn_rate_query: |
+    1 - (
+      sum(rate(api_gateway_request_duration_seconds_bucket{le="0.5"}[30d]))
+      /
+      sum(rate(api_gateway_request_duration_seconds_count[30d]))
+    )
+
+runbook: runbooks/api-latency.md
+dashboard: dashboards/api-gateway.json

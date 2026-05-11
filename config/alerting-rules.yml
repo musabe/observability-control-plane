@@ -1,0 +1,152 @@
+groups:
+  - name: api_gateway
+    rules:
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.99, rate(api_gateway_request_duration_seconds_bucket[5m])) > 0.5
+        for: 1m
+        labels:
+          severity: warning
+          service: api-gateway
+          incident_type: api_latency
+        annotations:
+          summary: "API p99 latency exceeds 500ms SLO"
+          description: "p99 latency is {{ $value | humanizeDuration }} (SLO: 500ms)"
+          runbook: "runbooks/api-latency.md"
+
+      - alert: HighErrorRate
+        expr: rate(api_gateway_requests_total{status=~"5.."}[5m]) / rate(api_gateway_requests_total[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          service: api-gateway
+          incident_type: error_rate
+        annotations:
+          summary: "API error rate exceeds 1%"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+          runbook: "runbooks/api-latency.md"
+
+      - alert: AuthFailureSpike
+        expr: rate(api_gateway_auth_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: api-gateway
+          incident_type: auth_failures
+        annotations:
+          summary: "Auth failure spike detected"
+          description: "Auth failures: {{ $value }}/sec"
+          runbook: "runbooks/auth-failures.md"
+
+      - alert: RateLimitingActive
+        expr: rate(api_gateway_rate_limited_total[1m]) > 0
+        for: 30s
+        labels:
+          severity: info
+          service: api-gateway
+          incident_type: rate_limiting
+        annotations:
+          summary: "Rate limiting is active"
+          description: "{{ $value }} requests/sec being rate-limited"
+          runbook: "runbooks/rate-limiting.md"
+
+  - name: db_service
+    rules:
+      - alert: DBPoolExhaustion
+        expr: db_service_pool_acquired_connections / (db_service_pool_acquired_connections + db_service_pool_idle_connections + 1) > 0.9
+        for: 30s
+        labels:
+          severity: critical
+          service: db-service
+          incident_type: db_exhaustion
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Pool utilisation: {{ $value | humanizePercentage }}"
+          runbook: "runbooks/db-exhaustion.md"
+
+      - alert: SlowQueries
+        expr: histogram_quantile(0.95, rate(db_service_query_duration_seconds_bucket[5m])) > 1.0
+        for: 1m
+        labels:
+          severity: warning
+          service: db-service
+          incident_type: slow_queries
+        annotations:
+          summary: "Slow database queries detected"
+          description: "p95 query duration: {{ $value | humanizeDuration }}"
+          runbook: "runbooks/db-exhaustion.md"
+
+      - alert: DBErrors
+        expr: rate(db_service_errors_total[5m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          service: db-service
+          incident_type: db_errors
+        annotations:
+          summary: "Database errors detected"
+          description: "{{ $value }} errors/sec"
+          runbook: "runbooks/db-exhaustion.md"
+
+  - name: queue_worker
+    rules:
+      - alert: QueueLagHigh
+        expr: queue_worker_queue_depth > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: queue-worker
+          incident_type: queue_lag
+        annotations:
+          summary: "Queue depth exceeds SLO threshold"
+          description: "Queue depth: {{ $value }} messages"
+          runbook: "runbooks/queue-lag.md"
+
+      - alert: ConsumerPaused
+        expr: queue_worker_consumer_paused == 1
+        for: 30s
+        labels:
+          severity: critical
+          service: queue-worker
+          incident_type: queue_lag
+        annotations:
+          summary: "Queue consumer is paused"
+          description: "No messages being processed"
+          runbook: "runbooks/queue-lag.md"
+
+      - alert: WebhookFailureRate
+        expr: rate(queue_worker_webhook_deliveries_total{status="fail"}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+          service: queue-worker
+          incident_type: webhook_retries
+        annotations:
+          summary: "Webhook delivery failures detected"
+          description: "Failure rate: {{ $value }}/sec"
+          runbook: "runbooks/webhook-retries.md"
+
+  - name: background_job
+    rules:
+      - alert: MemoryPressure
+        expr: background_job_memory_bytes > 200000000
+        for: 1m
+        labels:
+          severity: warning
+          service: background-job
+          incident_type: memory_pressure
+        annotations:
+          summary: "Background job memory usage high"
+          description: "Memory: {{ $value | humanize1024 }}B"
+          runbook: "runbooks/memory-pressure.md"
+
+      - alert: JobFailureRate
+        expr: rate(background_job_runs_total{status="error"}[10m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: background-job
+          incident_type: job_failures
+        annotations:
+          summary: "Background job failures detected"
+          description: "{{ $value }} failures/sec"
+          runbook: "runbooks/memory-pressure.md"

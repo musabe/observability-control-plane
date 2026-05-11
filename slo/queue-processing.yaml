@@ -1,0 +1,38 @@
+name: Queue Processing Throughput
+service: queue-worker
+version: "1.0"
+
+objective:
+  target: 99.5%
+  window: 30d
+
+sli:
+  description: Proportion of messages processed successfully within 30 seconds
+  prometheus_query: |
+    sum(rate(queue_worker_messages_processed_total{status="ok"}[5m]))
+    /
+    sum(rate(queue_worker_messages_processed_total[5m]))
+  good_threshold: 0.995
+
+throughput_targets:
+  max_queue_depth: 100
+  max_processing_lag_ms: 5000
+  min_throughput_per_minute: 60
+
+burn_rate_alerts:
+  - window: 1h
+    burn_rate: 14.4
+    severity: critical
+    action: "Page on-call — queue backlog building"
+  - window: 6h
+    burn_rate: 6
+    severity: warning
+    action: "Investigate consumer performance"
+
+queue_depth_slo:
+  target_percentile: p99
+  max_depth: 100
+  measurement_window: 5m
+
+runbook: runbooks/queue-lag.md
+dashboard: dashboards/queue-worker.json

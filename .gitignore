@@ -1,0 +1,30 @@
+# Go binaries
+services/*/api-gateway
+services/*/db-service
+services/*/queue-worker
+services/*/background-job
+*.exe
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Docker volumes (local dev)
+data/
+
+# Reports and generated incidents (keep templates, ignore generated)
+incidents/*/metrics.png
+incidents/*/traces.png
+incidents/*/logs.txt
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
