@@ -28,3 +28,10 @@ incidents/*/logs.txt
 # OS
 .DS_Store
 Thumbs.db
+
+incidents/*.md
+logs/*.jsonl
+dashboard/state.json
+dashboard/incident_history.jsonl
+patch_*.py
+debug_*.py
