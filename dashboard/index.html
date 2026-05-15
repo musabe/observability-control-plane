@@ -5,196 +5,199 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vorsa — Control Plane</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg0:#0b0d11;--bg1:#0f1117;--bg2:#141720;--bg3:#1a1e28;--bg4:#1f2435;
-  --border:#ffffff0f;--border2:#ffffff18;--border3:#ffffff26;
-  --text1:#e8eaf0;--text2:#9ba3b8;--text3:#5c647a;
-  --purple:#7c6ef7;--purple2:#6358d4;--purple3:#3d3580;--purple4:#1e1a3f;
-  --green:#22c97a;--green2:#1a9c5e;--green3:#0d3d27;
-  --amber:#f0a42e;--amber2:#c07d18;--amber3:#3d2a08;
-  --red:#ef4444;--red2:#b83232;--red3:#3d1414;
-  --blue:#4a9eff;--blue2:#2b6fd4;--blue3:#0d2a4d;
-  --mono:'JetBrains Mono',monospace;
-  --sans:'Inter',sans-serif;
+  --b:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.1);
+  --t1:#e8eaf0;--t2:#9ba3b8;--t3:#5c647a;
+  --ok:#22c97a;--warn:#f0a42e;--crit:#ef4444;--blue:#4a9eff;--purple:#7c6ef7;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
 }
-body{background:var(--bg0);color:var(--text1);font-family:var(--sans);font-size:13px;min-height:100vh;overflow-x:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--bg1);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;height:48px}
-.brand{display:flex;align-items:center;gap:14px}
-.brand-logo{height:28px;width:auto;display:block}
-.brand-tag{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;border-left:1px solid var(--border2);padding-left:14px}
-.topbar-right{display:flex;align-items:center;gap:16px}
-.pulse-wrap{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text3)}
-.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.clock{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.env-chip{background:var(--purple4);border:1px solid var(--purple3);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:10px;color:var(--purple)}
-.refresh-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;transition:all .15s}
-.refresh-btn:hover{color:var(--text1);border-color:var(--border3)}
-.layout{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 48px)}
-.sidebar{background:var(--bg1);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto}
-.sidebar-sec{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;padding:0 14px 8px}
-.env-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
-.env-item:hover{background:var(--bg2)}
-.env-item.active{background:var(--bg2);border-left-color:var(--purple)}
-.env-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.env-dot.ok{background:var(--green)}
-.env-dot.warning{background:var(--amber);animation:blink 2s infinite}
-.env-dot.critical{background:var(--red);animation:blink 1s infinite}
-.env-dot.unknown{background:var(--text3)}
-.env-name{font-family:var(--mono);font-size:10px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.env-item.active .env-name{color:var(--text1)}
-.env-badge{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px}
-.env-badge.ok{background:var(--green3);color:var(--green)}
-.env-badge.warning{background:var(--amber3);color:var(--amber)}
-.env-badge.critical{background:var(--red3);color:var(--red)}
-.sidebar-sep{height:1px;background:var(--border);margin:10px 14px}
-.sidebar-link{display:flex;align-items:center;gap:8px;padding:6px 14px;font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;transition:color .15s}
-.sidebar-link:hover{color:var(--text2)}
-.content{overflow-y:auto;padding:16px}
-.main-grid{display:flex;flex-direction:column;gap:12px}
-.health-bar{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
-.health-left{display:flex;align-items:center;gap:18px}
-.health-score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1}
-.health-score.ok{color:var(--green)}
-.health-score.warning{color:var(--amber)}
-.health-score.critical{color:var(--red)}
-.health-score-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
-.health-div{width:1px;height:44px;background:var(--border2)}
-.hstats{display:flex;gap:22px}
-.hstat{text-align:center}
-.hstat-val{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--text1)}
-.hstat-val.ok{color:var(--green)}
-.hstat-val.warning{color:var(--amber)}
-.hstat-val.critical{color:var(--red)}
-.hstat-val.blue{color:var(--blue)}
-.hstat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
-.health-right{display:flex;align-items:center;gap:14px}
-.env-meta{text-align:right}
-.env-meta-line{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:2px}
-.sev-badge{padding:4px 12px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600;border:1px solid}
-.sev-badge.ok{background:var(--green3);color:var(--green);border-color:var(--green2)}
-.sev-badge.warning{background:var(--amber3);color:var(--amber);border-color:var(--amber2)}
-.sev-badge.critical{background:var(--red3);color:var(--red);border-color:var(--red2);animation:blink 1s infinite}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px}
-.panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.panel-title{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase}
-.pbadge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px}
-.pbadge.ok{background:var(--green3);color:var(--green)}
-.pbadge.warning{background:var(--amber3);color:var(--amber)}
-.pbadge.critical{background:var(--red3);color:var(--red)}
-.pbadge.blue{background:var(--blue3);color:var(--blue)}
-.pbadge.unknown{background:var(--bg4);color:var(--text3)}
-.mrow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+body{background:var(--bg0);color:var(--t1);font-family:var(--sans);font-size:13px;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg1)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+@keyframes ping{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(2);opacity:0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes slidein{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;background:var(--bg1);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;height:44px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-name{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--t1)}
+.brand-tag{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;border-left:1px solid var(--b);padding-left:12px}
+.topbar-r{display:flex;align-items:center;gap:14px}
+.clock{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.pulse-wrap{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
+.refresh-btn{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:4px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;transition:all .15s}
+.refresh-btn:hover{color:var(--t1);border-color:rgba(255,255,255,.2)}
+
+.layout{display:grid;grid-template-columns:185px 1fr;min-height:calc(100vh - 44px)}
+.sidebar{background:var(--bg1);border-right:1px solid var(--b);padding:14px 0;overflow-y:auto}
+.sb-sec{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;padding:0 14px 6px}
+.sb-env{display:flex;align-items:center;gap:7px;padding:7px 14px;background:var(--bg2);border-left:2px solid var(--purple);cursor:pointer}
+.sb-env-inactive{display:flex;align-items:center;gap:7px;padding:7px 14px;cursor:pointer;border-left:2px solid transparent}
+.sb-env-inactive:hover{background:var(--bg2)}
+.sb-link{display:flex;align-items:center;gap:7px;padding:5px 14px;cursor:pointer}
+.sb-link span{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.sb-link:hover span{color:var(--t2)}
+.sb-sep{height:1px;background:var(--b);margin:8px 14px}
+.dot{position:relative;width:8px;height:8px;flex-shrink:0}
+.dot-i{width:8px;height:8px;border-radius:50%;position:absolute}
+.dot-p{width:8px;height:8px;border-radius:50%;position:absolute;animation:ping 1.5s ease-in-out infinite}
+
+.main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.panel{background:var(--bg2);border:1px solid var(--b);border-radius:8px;padding:11px 13px;animation:slidein .3s ease}
+.ptitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.ptitle-lbl{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase}
+
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row2{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.row3b{display:grid;grid-template-columns:260px 1fr 1fr;gap:10px;align-items:start}
+
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--b)}
 .mrow:last-child{border-bottom:none}
-.mkey{font-family:var(--mono);font-size:10px;color:var(--text2)}
-.mval{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text1)}
-.mval.ok{color:var(--green)}
-.mval.warning{color:var(--amber)}
-.mval.critical{color:var(--red)}
-.mval.blue{color:var(--blue)}
-.mval.dim{color:var(--text3)}
-.bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden}
-.bar-fill{height:100%;border-radius:2px;transition:width .5s}
-.bar-fill.ok{background:var(--green)}
-.bar-fill.warning{background:var(--amber)}
-.bar-fill.critical{background:var(--red)}
-.bar-fill.blue{background:var(--blue)}
-.svc-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.mkey{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.mval{font-family:var(--mono);font-size:11px;font-weight:500}
+
+.svc-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--b)}
 .svc-row:last-child{border-bottom:none}
-.svc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.svc-dot.running{background:var(--green)}
-.svc-dot.stopped{background:var(--text3)}
-.svc-dot.critical{background:var(--red);animation:blink 1s infinite}
-.svc-name{font-family:var(--mono);font-size:10px;color:var(--text2);flex:1}
-.svc-state{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px}
-.svc-state.running{background:var(--green3);color:var(--green)}
-.svc-state.stopped{background:var(--bg4);color:var(--text3)}
-.svc-mem{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:55px;text-align:right}
-.db-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.db-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
-.db-name{font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:4px}
-.db-conn{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--blue)}
-.db-conn-label{font-size:9px;color:var(--text3)}
-.db-item.total{background:var(--green3);border-color:var(--green2)}
-.db-item.total .db-name{color:var(--green2)}
-.db-item.total .db-conn{color:var(--green);font-size:18px}
-.db-item.total .db-conn-label{color:var(--green2)}
-.tl-event{display:flex;align-items:flex-start;gap:10px;padding:7px 0;position:relative}
-.tl-event::before{content:'';position:absolute;left:16px;top:24px;bottom:-7px;width:1px;background:var(--border2)}
-.tl-event:last-child::before{display:none}
+.svc-name{font-family:var(--mono);font-size:10px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.svc-mem{font-family:var(--mono);font-size:9px;color:var(--t3);min-width:66px;text-align:right}
+
+.tl-event{display:flex;align-items:flex-start;gap:9px;padding:6px 0;position:relative;animation:slidein .3s ease}
 .tl-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-family:var(--mono)}
-.tl-icon.ok{background:var(--green3);border:1px solid var(--green2);color:var(--green)}
-.tl-icon.info{background:var(--blue3);border:1px solid var(--blue2);color:var(--blue)}
-.tl-icon.warning{background:var(--amber3);border:1px solid var(--amber2);color:var(--amber)}
-.tl-icon.critical{background:var(--red3);border:1px solid var(--red2);color:var(--red)}
-.tl-icon.purple{background:var(--purple4);border:1px solid var(--purple3);color:var(--purple)}
-.tl-body{flex:1}
-.tl-ts{font-family:var(--mono);font-size:9px;color:var(--text3)}
-.tl-msg{font-family:var(--mono);font-size:10px;color:var(--text1);margin-top:1px}
-.tl-sub{font-size:10px;color:var(--text3);margin-top:2px}
-.rca-panel{background:var(--bg2);border:1px solid var(--purple3);border-left:3px solid var(--purple);border-radius:8px;padding:12px}
-.rca-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.rca-icon{width:20px;height:20px;background:var(--purple4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--purple)}
-.rca-title{font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:.06em;text-transform:uppercase}
-.rca-conf{margin-left:auto;font-family:var(--mono);font-size:9px;background:var(--purple4);border:1px solid var(--purple3);border-radius:3px;padding:2px 6px;color:var(--purple)}
-.rca-body{font-size:11px;color:var(--text2);line-height:1.65;margin-bottom:10px}
-.rca-action{display:flex;align-items:flex-start;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text2);padding:4px 6px;background:var(--bg3);border-radius:4px;margin-bottom:4px}
-.rca-action::before{content:'›';color:var(--purple);flex-shrink:0}
-.inc-card{border-radius:6px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--red);background:rgba(61,20,20,.2);border-top:1px solid var(--red3);border-right:1px solid var(--red3);border-bottom:1px solid var(--red3)}
-.inc-card.warning{border-left-color:var(--amber);background:rgba(61,42,8,.2);border-color:var(--amber3)}
-.inc-title{font-size:12px;font-weight:500;color:var(--text1);margin-bottom:3px}
-.inc-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:6px}
-.inc-ev{font-family:var(--mono);font-size:9px;color:var(--text2);padding:2px 0;display:flex;gap:8px}
-.inc-src{color:var(--text3);min-width:56px}
-.inc-act{font-size:10px;color:var(--text2);padding:2px 0 2px 10px;position:relative}
-.inc-act::before{content:'›';position:absolute;left:0;color:var(--text3)}
-.no-inc{font-family:var(--mono);font-size:10px;color:var(--text3);padding:8px 0;display:flex;align-items:center;gap:6px}
-.error-box{background:var(--red3);border:1px solid var(--red2);border-radius:8px;padding:14px;margin:20px;font-family:var(--mono);font-size:11px;color:var(--red)}
-.loading-box{display:flex;align-items:center;justify-content:center;height:300px;font-family:var(--mono);font-size:11px;color:var(--text3)}
+.tl-ts{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.tl-msg{font-family:var(--mono);font-size:10px;color:var(--t1);margin-top:1px}
+.tl-sub{font-size:10px;color:var(--t3);margin-top:1px}
+
+.inc-card{border-radius:6px;padding:9px 11px;margin-bottom:7px;animation:slidein .3s ease}
+.rca-act{font-family:var(--mono);font-size:10px;color:var(--t2);padding:3px 6px 3px 12px;background:var(--bg3);border-radius:4px;margin-bottom:3px;position:relative}
+.rca-act::before{content:'›';position:absolute;left:4px;color:var(--purple)}
+.fp-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--b)}
+.fp-row:last-child{border-bottom:none}
+
+.error-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:16px;margin:20px;font-family:var(--mono);font-size:11px;color:var(--crit);line-height:1.7}
+.loading-box{display:flex;align-items:center;justify-content:center;height:200px;font-family:var(--mono);font-size:11px;color:var(--t3)}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">
-    <img class="brand-logo" src="vorsa_logo.png" alt="Vorsa">
-    <div class="brand-tag">your stack, under control.</div>
+    <img src="vorsa_logo.png" alt="Vorsa" style="height:24px;width:auto" onerror="this.style.display='none';document.getElementById('brand-txt').style.display='block'">
+    <span id="brand-txt" style="display:none;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--t1)">Vorsa <span style="color:var(--purple)">//</span> control plane</span>
+    <span class="brand-tag">your stack, under control.</span>
   </div>
-  <div class="topbar-right">
-    <div class="pulse-wrap"><div class="pulse"></div><span id="poll-status">loading...</span></div>
-    <div class="clock" id="clock"></div>
-    <div class="env-chip" id="env-chip">—</div>
+  <div class="topbar-r">
+    <div class="pulse-wrap"><div class="pulse-dot"></div><span id="poll-status">loading...</span></div>
+    <span class="clock" id="clock"></span>
+    <span id="env-chip" style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(124,110,247,.1);color:var(--purple);border:1px solid rgba(124,110,247,.2)">—</span>
     <button class="refresh-btn" onclick="loadState()">↺ refresh</button>
   </div>
 </div>
 
 <div class="layout">
   <div class="sidebar" id="sidebar">
-    <div class="sidebar-sec">environments</div>
+    <div class="sb-sec">environments</div>
     <div id="env-list"></div>
-    <div class="sidebar-sep"></div>
-    <div class="sidebar-sec">platform</div>
-    <div class="sidebar-link" onclick="window.open('state.json','_blank')">↗ state.json</div>
-    <div class="sidebar-link" onclick="window.open('../incidents/','_blank')">↗ incidents</div>
-    <div class="sidebar-link" onclick="window.open('../logs/alerts.jsonl','_blank')">↗ alert log</div>
-    <div class="sidebar-sep"></div>
-    <div class="sidebar-sec">vorsa</div>
-    <div class="sidebar-link">correlation rules</div>
-    <div class="sidebar-link">runbooks</div>
-    <div class="sidebar-link">config</div>
+    <div class="sb-sep"></div>
+    <div class="sb-sec">platform</div>
+    <div class="sb-link" onclick="window.open('state.json','_blank')"><span>telemetry</span></div>
+    <div class="sb-link" onclick="window.open('../incidents/','_blank')"><span>incidents</span></div>
+    <div class="sb-link" onclick="window.open('../logs/alerts.jsonl','_blank')"><span>alert log</span></div>
+    <div class="sb-sep"></div>
+    <div class="sb-sec">collectors</div>
+    <div id="collector-list"></div>
+    <div class="sb-sep"></div>
+    <div class="sb-sec">vorsa</div>
+    <div class="sb-link"><span>correlation rules</span></div>
+    <div class="sb-link"><span>runbooks</span></div>
+    <div class="sb-link"><span>dependencies</span></div>
   </div>
-  <div class="content" id="content">
+  <div class="main" id="content">
     <div class="loading-box">connecting to control plane...</div>
   </div>
 </div>
 
 <script>
-let state=null;
-let activeIdx=0;
+let state = null;
+let activeIdx = 0;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const C = {ok:'#22c97a',warn:'#f0a42e',crit:'#ef4444',blue:'#4a9eff',purple:'#7c6ef7',text3:'#5c647a'};
+const CBG = {ok:'rgba(34,201,122,.1)',warn:'rgba(240,164,46,.1)',crit:'rgba(239,68,68,.1)',blue:'rgba(74,158,255,.1)',purple:'rgba(124,110,247,.1)'};
+const CBD = {ok:'rgba(34,201,122,.25)',warn:'rgba(240,164,46,.25)',crit:'rgba(239,68,68,.25)',blue:'rgba(74,158,255,.25)',purple:'rgba(124,110,247,.25)'};
+
+function sevColor(s){ return C[s]||C.ok; }
+function sevBg(s){ return CBG[s]||CBG.ok; }
+function sevBd(s){ return CBD[s]||CBD.ok; }
+
+function badge(text, s, lg){
+  const c=sevColor(s),bg=sevBg(s),bd=sevBd(s);
+  const sz = lg ? 'font-size:10px;padding:4px 12px;border-radius:4px' : 'font-size:9px;padding:2px 6px;border-radius:3px';
+  return `<span style="font-family:monospace;${sz};background:${bg};color:${c};border:1px solid ${bd};white-space:nowrap">${text}</span>`;
+}
+
+function dot(sev, pulse){
+  const c = sevColor(sev);
+  return `<div class="dot"><div class="dot-i" style="background:${c}"></div>${pulse?`<div class="dot-p" style="background:${c}"></div>`:''}</div>`;
+}
+
+function bar(pct, sev){
+  return `<div style="height:3px;background:#1f2435;border-radius:2px;margin-top:5px;overflow:hidden">
+    <div style="height:100%;width:${Math.min(pct||0,100)}%;background:${sevColor(sev)};border-radius:2px;transition:width .6s ease"></div>
+  </div>`;
+}
+
+function mrow(label, val, sev){
+  return `<div class="mrow"><span class="mkey">${label}</span><span class="mval" style="color:${sev?sevColor(sev):'#e8eaf0'}">${val}</span></div>`;
+}
+
+function spark(data, sev){
+  if(!data||data.length<2) return '';
+  const valid = data.filter(v=>v>0);
+  if(valid.length<2) return '';
+  const max=Math.max(...valid,1),min=Math.min(...valid,0),range=max-min||1;
+  const pts = data.map((v,i)=>{
+    const x=(i/(data.length-1))*80;
+    const y=v===0?24:24-((v-min)/range)*20-2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg width="80" height="26" style="display:block;margin-top:7px"><polyline points="${pts}" fill="none" stroke="${sevColor(sev)}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/></svg>`;
+}
+
+function tlIcon(type){
+  const bg=sevBg(type)||'rgba(255,255,255,.05)';
+  const bc=sevColor(type)||C.text3;
+  const g={ok:'✓',warn:'!',warning:'!',crit:'✗',critical:'✗',blue:'↻',purple:'⬡',info:'↻',ok:'✓'}[type]||'·';
+  return `<div class="tl-icon" style="background:${bg};border:1px solid ${bc}40;color:${bc}">${g}</div>`;
+}
+
+function fmtTime(iso){
+  if(!iso) return '—';
+  const d=new Date(iso.replace(' ','T').replace('+00:00','Z'));
+  const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
+}
+
+function normSev(s){
+  if(!s) return 'ok';
+  if(s==='warning') return 'warn';
+  if(s==='critical') return 'crit';
+  return s;
+}
+
+function healthLabel(env){
+  return env.health_label || (env.overall_severity==='critical'?'CRITICAL':env.overall_severity==='warning'?'DEGRADED':'HEALTHY');
+}
+
+function healthSev(env){
+  return normSev(env.overall_severity||'ok');
+}
+
+// ── Clock ────────────────────────────────────────────────────────────────────
 
 function tick(){
   const now=new Date();
@@ -202,59 +205,65 @@ function tick(){
   document.getElementById('clock').textContent=
     `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())} UTC`;
 }
-tick();setInterval(tick,1000);
+tick(); setInterval(tick,1000);
 
-function fmtTime(iso){
-  if(!iso)return'—';
-  const d=new Date(iso.replace(' ','T').replace('+00:00','Z'));
-  const p=n=>String(n).padStart(2,'0');
-  return`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
-}
-
-function healthScore(env){
-  return env.health_score !== undefined && env.health_score !== null
-    ? env.health_score
-    : (env.overall_severity==='critical' ? 35 : env.overall_severity==='warning' ? 70 : 97);
-}
-
-function healthLabel(env){
-  return env.health_label || (env.overall_severity==='critical' ? 'CRITICAL' : env.overall_severity==='warning' ? 'DEGRADED' : 'HEALTHY');
-}
-
-function barClass(pct,wThresh,cThresh){
-  if(pct>=cThresh)return'critical';
-  if(pct>=wThresh)return'warning';
-  return'ok';
-}
+// ── Load state ───────────────────────────────────────────────────────────────
 
 async function loadState(){
   document.getElementById('poll-status').textContent='refreshing...';
   try{
     const res=await fetch('state.json?t='+Date.now());
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!res.ok) throw new Error('HTTP '+res.status);
     state=await res.json();
     render();
     document.getElementById('poll-status').textContent='last poll: '+fmtTime(state.polled_at);
   }catch(e){
     document.getElementById('poll-status').textContent='error';
     document.getElementById('content').innerHTML=
-      `<div class="error-box">Could not load state.json<br><br>${e.message}<br><br>Start the HTTP server from the repo root:<br>python -m http.server 8888<br><br>Then open: http://localhost:8888/dashboard/index.html</div>`;
+      `<div class="error-box">Could not load state.json<br><br>${e.message}<br><br>
+      Start HTTP server from repo root:<br><code>python -m http.server 8888</code><br><br>
+      Then open: <code>http://localhost:8888/dashboard/index.html</code></div>`;
   }
 }
 
+// ── Render ────────────────────────────────────────────────────────────────────
+
 function render(){
-  if(!state||!state.environments)return;
+  if(!state||!state.environments) return;
   renderSidebar();
+  renderCollectors();
   renderEnv(activeIdx);
 }
 
 function renderSidebar(){
-  const list=document.getElementById('env-list');
-  list.innerHTML=state.environments.map((env,i)=>`
-    <div class="env-item ${i===activeIdx?'active':''}" onclick="selectEnv(${i})">
-      <div class="env-dot ${env.overall_severity}"></div>
-      <div class="env-name">${env.name}</div>
-      <div class="env-badge ${env.overall_severity}">${env.incidents.length>0?env.incidents.length:'✓'}</div>
+  const el=document.getElementById('env-list');
+  el.innerHTML=state.environments.map((env,i)=>{
+    const s=normSev(env.overall_severity);
+    const active=i===activeIdx;
+    return `<div class="${active?'sb-env':'sb-env-inactive'}" onclick="selectEnv(${i})">
+      ${dot(s,s!=='ok')}
+      <span style="font-family:monospace;font-size:10px;color:${active?'#e8eaf0':'#9ba3b8'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${env.name}</span>
+      ${env.incidents&&env.incidents.length>0?badge(env.incidents.length,s):'<span style="font-family:monospace;font-size:9px;color:var(--ok)">✓</span>'}
+    </div>`;
+  }).join('');
+}
+
+function renderCollectors(){
+  const env = state.environments[activeIdx];
+  if(!env) return;
+  const pg = env.postgres;
+  const http = env.http;
+  const win = env.windows;
+  const cols = [
+    {n:'postgres',s:pg?(pg.available?normSev(pg.severity):'crit'):'ok'},
+    {n:'http',s:http?(normSev(http.overall_severity)):'ok'},
+    {n:'windows/wmi',s:win?(win.available?normSev(win.severity):'warn'):'ok'},
+    {n:'qmatic/jdbc',s:env.services&&Object.keys(env.services.connections_by_db||{}).length>0?'ok':'warn'},
+  ];
+  document.getElementById('collector-list').innerHTML=cols.map(c=>
+    `<div class="sb-link">
+      <div style="width:5px;height:5px;border-radius:50%;background:${sevColor(c.s)};flex-shrink:0;animation:${c.s==='ok'?'pulse 3s infinite':'none'}"></div>
+      <span>${c.n}</span>
     </div>`).join('');
 }
 
@@ -263,240 +272,367 @@ function selectEnv(i){
   render();
 }
 
+// ── Environment renderer ──────────────────────────────────────────────────────
+
 function renderEnv(i){
   const env=state.environments[i];
-  if(!env)return;
+  if(!env){ document.getElementById('content').innerHTML='<div class="loading-box">no environment data</div>'; return; }
+
   document.getElementById('env-chip').textContent=env.name;
+
   const pg=env.postgres;
   const http=env.http;
-  const win=env.windows||null;
-  const svc=env.services||null;
-  const score=healthScore(env);
-  const scoreClass=score>=90?'ok':score>=60?'warning':'critical';
-  const sevLabel=healthLabel(env);
+  const win=env.windows;
+  const svc=env.services;
+  const incs=env.incidents||[];
+  const suppressed=env.suppressed_warnings||[];
 
-  const connPct=pg?pg.connection_pct:0;
-  const connClass=barClass(connPct,75,90);
-  const memPct=win?win.memory_used_pct:0;
-  const memClass=barClass(memPct,80,90);
-  const httpLat=http&&http.checks&&http.checks[0]?http.checks[0].latency_ms:0;
-  const httpClass=http?http.overall_severity:'unknown';
+  const envSev=healthSev(env);
+  const envSevC=sevColor(envSev);
+  const hs=env.health_score??97;
+  const hlabel=healthLabel(env);
+  const hlgBadge=envSev==='ok'?'ok':envSev==='warn'||envSev==='warning'?'warn':'crit';
 
-  let html=`
-    <div class="main-grid">
-      <div class="health-bar">
-        <div class="health-left">
-          <div>
-            <div class="health-score ${scoreClass}">${score}</div>
-            <div class="health-score-label">health score</div>
-          </div>
-          <div class="health-div"></div>
-          <div class="hstats">
-            <div class="hstat"><div class="hstat-val ${env.incidents.length>0?'critical':'ok'}">${env.incidents.length}</div><div class="hstat-label">incidents</div></div>
-            <div class="hstat"><div class="hstat-val ${connClass} blue">${connPct.toFixed(1)}%</div><div class="hstat-label">pg pool</div></div>
-            <div class="hstat"><div class="hstat-val ${httpClass}">${httpLat?httpLat.toFixed(0)+'ms':'—'}</div><div class="hstat-label">latency</div></div>
-            ${win?`<div class="hstat"><div class="hstat-val ${memClass} blue">${memPct.toFixed(1)}%</div><div class="hstat-label">srv mem</div></div>`:''}
-            ${win?`<div class="hstat"><div class="hstat-val ok">${win.qmatic_total_memory_mb?win.qmatic_total_memory_mb.toFixed(0)+'MB':'—'}</div><div class="hstat-label">qmatic mem</div></div>`:''}
-          </div>
+  const pgSev=pg?normSev(pg.severity):'ok';
+  const httpSev=http?normSev(http.overall_severity):'ok';
+  const winSev=win?normSev(win.severity):'ok';
+
+  // ── Health bar ──
+  let html=`<div class="panel" style="padding:11px 15px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:18px">
+        <div>
+          <div style="font-family:monospace;font-size:20px;font-weight:600;color:${envSevC};line-height:1">${hs}</div>
+          <div style="font-family:monospace;font-size:9px;color:var(--t3);margin-top:2px;letter-spacing:.08em;text-transform:uppercase">health</div>
         </div>
-        <div class="health-right">
-          <div class="env-meta">
-            <div class="env-meta-line">${env.description||env.name}</div>
-            <div class="env-meta-line">polled ${fmtTime(env.polled_at)}</div>
-          </div>
-          <div class="sev-badge ${scoreClass}">${sevLabel}</div>
+        <div style="width:1px;height:34px;background:var(--b)"></div>
+        <div style="display:flex;gap:16px">
+          ${[
+            {l:'incidents',v:incs.length,s:incs.length>0?envSev:'ok'},
+            {l:'pg pool',v:pg?pg.connection_pct.toFixed(1)+'%':'—',s:pgSev},
+            {l:'latency',v:http&&http.checks&&http.checks[0]?http.checks[0].latency_ms.toFixed(0)+'ms':'—',s:httpSev},
+            {l:'srv mem',v:win?win.memory_used_pct.toFixed(1)+'%':'—',s:win?normSev(win.memory_severity||'ok'):'ok'},
+            {l:'qmatic',v:win?win.services.filter(s=>s.state==='Running').length+'/'+win.services.length:'—',s:win&&win.services.some(s=>s.state!=='Running')?'crit':'ok'},
+          ].map(m=>`<div style="text-align:center">
+            <div style="font-family:monospace;font-size:14px;font-weight:500;color:${sevColor(m.s)}">${m.v}</div>
+            <div style="font-family:monospace;font-size:9px;color:var(--t3);margin-top:1px;text-transform:uppercase">${m.l}</div>
+          </div>`).join('')}
         </div>
-      </div>`;
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="text-align:right">
+          <div style="font-family:monospace;font-size:9px;color:var(--t3)">${env.description||env.name}</div>
+          <div style="font-family:monospace;font-size:9px;color:var(--t3);margin-top:2px">polled ${fmtTime(env.polled_at)}</div>
+        </div>
+        ${badge(hlabel,hlgBadge,true)}
+      </div>
+    </div>
+  </div>`;
 
+  // ── Row 1: PG + HTTP + Windows ──
   html+=`<div class="row3">`;
 
-  // PostgreSQL panel
-  html+=`<div class="panel">
-    <div class="panel-hd"><div class="panel-title">postgresql</div><div class="pbadge ${pg?pg.severity:'unknown'}">${pg?(pg.available?'online':'offline'):'no config'}</div></div>`;
+  // PostgreSQL
+  html+=`<div class="panel" style="${pgSev!=='ok'?'border-left:3px solid '+sevColor(pgSev):''}">
+    <div class="ptitle"><span class="ptitle-lbl">postgresql</span>${badge(pg?(pg.available?'online':'offline'):'no config',pgSev)}</div>`;
   if(pg){
-    html+=`<div class="mrow"><div class="mkey">connection pool</div><div class="mval ${connClass}">${connPct.toFixed(1)}%</div></div>
-    <div class="bar-track"><div class="bar-fill ${connClass}" style="width:${Math.min(connPct,100)}%"></div></div>
-    <div style="margin-top:8px">
-    <div class="mrow"><div class="mkey">active / max</div><div class="mval blue">${pg.active_connections} / ${pg.max_connections}</div></div>
-    <div class="mrow"><div class="mkey">long queries</div><div class="mval ${pg.long_running_queries>0?'warning':'ok'}">${pg.long_running_queries}</div></div>
-    <div class="mrow"><div class="mkey">blocked queries</div><div class="mval ${pg.blocked_queries>0?'critical':'ok'}">${pg.blocked_queries}</div></div>
-    ${pg.error?`<div class="mrow"><div class="mkey">error</div><div class="mval critical" style="font-size:9px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pg.error}</div></div>`:''}
+    const cp=pg.connection_pct||0;
+    html+=`<div style="font-family:monospace;font-size:16px;font-weight:500;color:${sevColor(pgSev)};margin-bottom:2px">${cp.toFixed(1)}%</div>`;
+    html+=bar(cp,pgSev);
+    html+=`<div style="margin-top:7px">
+      ${mrow('active / max',`${pg.active_connections} / ${pg.max_connections}`,'blue')}
+      ${mrow('long queries',pg.long_running_queries,pg.long_running_queries>0?'warn':'ok')}
+      ${mrow('blocked',pg.blocked_queries,pg.blocked_queries>0?'crit':'ok')}
+      ${pg.error?mrow('error',(pg.error||'').substring(0,22)+'…','crit'):''}
     </div>`;
-  }else{html+=`<div class="no-inc">no postgresql configured</div>`;}
+  }else{ html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:8px 0">no postgresql configured</div>`; }
   html+=`</div>`;
 
-  // HTTP panel
-  html+=`<div class="panel">
-    <div class="panel-hd"><div class="panel-title">http / api</div><div class="pbadge ${http?http.overall_severity:'unknown'}">${http?(http.all_reachable?'all ok':'degraded'):'no checks'}</div></div>`;
+  // HTTP
+  html+=`<div class="panel" style="${httpSev!=='ok'?'border-left:3px solid '+sevColor(httpSev):''}">
+    <div class="ptitle"><span class="ptitle-lbl">http / api</span>${badge(http?(http.all_reachable?'all ok':'degraded'):'no checks',httpSev)}</div>`;
   if(http&&http.checks){
+    const firstCheck=http.checks[0];
+    const lat=firstCheck?firstCheck.latency_ms:0;
+    const latPct=Math.min((lat/3000)*100,100);
+    html+=`<div style="font-family:monospace;font-size:16px;font-weight:500;color:${sevColor(httpSev)};margin-bottom:2px">${lat?lat.toFixed(0)+'ms':'—'}</div>`;
+    html+=bar(latPct,httpSev);
+    html+=`<div style="margin-top:7px">`;
     http.checks.forEach(c=>{
-      const latPct=Math.min((c.latency_ms/3000)*100,100);
-      const latClass=c.severity;
-      html+=`<div class="mrow"><div class="mkey">${c.name}</div><div class="mval ${latClass}">${c.reachable?c.latency_ms.toFixed(0)+'ms':'unreachable'}</div></div>
-      <div class="bar-track"><div class="bar-fill ${latClass}" style="width:${latPct}%"></div></div>`;
+      html+=mrow(c.name,c.reachable?c.latency_ms.toFixed(0)+'ms':'timeout',normSev(c.severity));
     });
-    html+=`<div style="margin-top:8px">
-    <div class="mrow"><div class="mkey">status</div><div class="mval ${http.overall_severity}">${http.checks[0]?'HTTP '+http.checks[0].status_code:'—'}</div></div>
-    <div class="mrow"><div class="mkey">endpoints</div><div class="mval">${http.checks.length} configured</div></div>
-    <div class="mrow"><div class="mkey">reachable</div><div class="mval ok">${http.checks.filter(c=>c.reachable).length} / ${http.checks.length}</div></div>
-    </div>`;
-  }else{html+=`<div class="no-inc">no http checks configured</div>`;}
+    html+=mrow('status',firstCheck?'HTTP '+firstCheck.status_code:'—',httpSev);
+    html+=`</div>`;
+  }else{ html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:8px 0">no http checks</div>`; }
   html+=`</div>`;
 
-  // Windows panel
-  html+=`<div class="panel">
-    <div class="panel-hd"><div class="panel-title">windows / services</div><div class="pbadge ${win?(win.severity||'ok'):'unknown'}">${win?(win.available?'healthy':'error'):'no config'}</div></div>`;
+  // Windows
+  html+=`<div class="panel" style="${winSev!=='ok'?'border-left:3px solid '+sevColor(winSev):''}">
+    <div class="ptitle"><span class="ptitle-lbl">windows / services</span>${badge(win?(win.available?'healthy':'error'):'no config',winSev)}</div>`;
   if(win&&win.available){
-    html+=`<div class="mrow"><div class="mkey">server memory</div><div class="mval ${memClass}">${memPct.toFixed(1)}%</div></div>
-    <div class="bar-track"><div class="bar-fill ${memClass}" style="width:${Math.min(memPct,100)}%"></div></div>
-    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;margin-bottom:8px">${win.used_memory_mb.toFixed(0)} MB used / ${win.total_memory_mb.toFixed(0)} MB total</div>`;
-    if(win.services&&win.services.length>0){
-      win.services.forEach(s=>{
-        const dotClass=s.state==='Running'?'running':'stopped';
-        const stateClass=s.state==='Running'?'running':'stopped';
-        html+=`<div class="svc-row">
-          <div class="svc-dot ${dotClass}"></div>
-          <div class="svc-name">${s.display_name}</div>
-          <div class="svc-state ${stateClass}">${s.state.toLowerCase()}</div>
-          <div class="svc-mem">${s.memory_mb>0?s.memory_mb.toFixed(0)+' MB':'—'}${s.heap_used_pct>0?' <span style="font-size:9px;color:'+(s.heap_severity==='critical'?'var(--red)':s.heap_severity==='warning'?'var(--amber)':'var(--text3)')+'">'+s.heap_used_pct.toFixed(0)+'%</span>':''}</div>
-        </div>`;
-      });
-    }
-    if(win.missing_services&&win.missing_services.length>0){
-      html+=`<div style="margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--red)">⚠ no JDBC: ${win.missing_services.join(', ')}</div>`;
-    }
-  }else if(win&&!win.available){
-    html+=`<div class="no-inc" style="color:var(--amber)">⚠ WMI collection failed</div>
-    ${win.error?`<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">${win.error}</div>`:''}`;
-  }else{html+=`<div class="no-inc">no windows config</div>`;}
-  html+=`</div></div>`;
-
-  // Row 2: JDBC connections + Timeline
-  html+=`<div class="row2">`;
-
-  // JDBC per-DB
-  html+=`<div class="panel">
-    <div class="panel-hd"><div class="panel-title">jdbc connections · per database</div><div class="pbadge ${svc?svc.severity:'unknown'}">${svc?'monitoring':'no data'}</div></div>`;
-  if(svc&&svc.connections_by_db&&Object.keys(svc.connections_by_db).length>0){
-    const maxConn=Math.max(...Object.values(svc.connections_by_db));
-    const total=Object.values(svc.connections_by_db).reduce((a,b)=>a+b,0);
-    html+=`<div class="db-grid">`;
-    Object.entries(svc.connections_by_db).sort((a,b)=>b[1]-a[1]).forEach(([db,count])=>{
-      const pct=maxConn>0?(count/maxConn)*100:0;
-      html+=`<div class="db-item">
-        <div class="db-name">${db}</div>
-        <div class="db-conn">${count}</div>
-        <div class="db-conn-label">JDBC connections</div>
-        <div class="bar-track" style="margin-top:4px"><div class="bar-fill blue" style="width:${pct}%"></div></div>
+    const mp=win.memory_used_pct||0;
+    const mSev=normSev(win.memory_severity||'ok');
+    html+=`<div style="font-family:monospace;font-size:16px;font-weight:500;color:${sevColor(mSev)};margin-bottom:2px">${mp.toFixed(1)}%</div>`;
+    html+=bar(mp,mSev);
+    html+=`<div style="font-family:monospace;font-size:9px;color:var(--t3);margin-top:3px;margin-bottom:7px">${win.used_memory_mb.toFixed(0)}MB / ${win.total_memory_mb.toFixed(0)}MB · jvm_max=${win.jvm_heap_max_mb>0?win.jvm_heap_max_mb.toFixed(0)+'MB':'—'}(${win.jvm_heap_source||'?'})</div>`;
+    win.services.forEach(s=>{
+      const ds=s.state!=='Running'?'crit':normSev(s.heap_severity||'ok');
+      const stc=s.state==='Running'?C.ok:s.state==='Degraded'?C.warn:C.crit;
+      const stbg=s.state==='Running'?CBG.ok:s.state==='Degraded'?CBG.warn:CBG.crit;
+      html+=`<div class="svc-row">
+        ${dot(ds,ds==='crit')}
+        <span class="svc-name">${s.display_name}</span>
+        <span style="font-family:monospace;font-size:9px;padding:1px 5px;border-radius:3px;background:${stbg};color:${stc}">${s.state.toLowerCase()}</span>
+        <span class="svc-mem">${s.memory_mb>0?s.memory_mb.toFixed(0)+'MB':'—'}${s.heap_used_pct>0?` <span style="color:${normSev(s.heap_severity||'ok')==='crit'?C.crit:normSev(s.heap_severity||'ok')==='warn'?C.warn:C.text3}">${s.heap_used_pct.toFixed(0)}%</span>`:''}</span>
       </div>`;
     });
-    html+=`<div class="db-item total">
-      <div class="db-name">total active</div>
-      <div class="db-conn">${total}</div>
-      <div class="db-conn-label">all databases</div>
+    if(win.missing_services&&win.missing_services.length>0){
+      html+=`<div style="font-family:monospace;font-size:9px;color:var(--crit);margin-top:6px">⚠ no JDBC: ${win.missing_services.join(', ')}</div>`;
+    }
+  }else if(win&&!win.available){
+    html+=`<div style="font-family:monospace;font-size:10px;color:var(--warn);padding:8px 0">⚠ WMI collection failed</div>`;
+    if(win.error) html+=`<div style="font-family:monospace;font-size:9px;color:var(--t3)">${win.error}</div>`;
+  }else{ html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:8px 0">no windows config</div>`; }
+  html+=`</div></div>`;
+
+  // ── Row 2: JDBC + Timeline ──
+  html+=`<div class="row2">`;
+
+  // JDBC
+  html+=`<div class="panel">
+    <div class="ptitle"><span class="ptitle-lbl">jdbc connections · per database</span>${badge(svc?'monitoring':'no data',svc?'blue':'ok')}</div>`;
+  if(svc&&svc.connections_by_db&&Object.keys(svc.connections_by_db).length>0){
+    const maxConn=Math.max(...Object.values(svc.connections_by_db),1);
+    const total=Object.values(svc.connections_by_db).reduce((a,b)=>a+b,0);
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+    Object.entries(svc.connections_by_db).sort((a,b)=>b[1]-a[1]).forEach(([db,cnt])=>{
+      const s=cnt===0?'crit':'ok';
+      html+=`<div style="background:${cnt===0?'rgba(239,68,68,.06)':'#1a1e28'};border:1px solid ${cnt===0?'rgba(239,68,68,.3)':'var(--b)'};border-radius:6px;padding:7px 9px">
+        <div style="font-family:monospace;font-size:10px;color:var(--t2);margin-bottom:3px">${db}</div>
+        <div style="font-family:monospace;font-size:14px;font-weight:500;color:${cnt===0?C.crit:C.blue}">${cnt}</div>
+        <div style="font-family:monospace;font-size:9px;color:var(--t3)">JDBC</div>
+        ${bar((cnt/maxConn)*100,s)}
+      </div>`;
+    });
+    html+=`<div style="background:rgba(34,201,122,.07);border:1px solid rgba(34,201,122,.2);border-radius:6px;padding:7px 9px">
+      <div style="font-family:monospace;font-size:10px;color:rgba(34,201,122,.7);margin-bottom:3px">total active</div>
+      <div style="font-family:monospace;font-size:16px;font-weight:500;color:var(--ok)">${total}</div>
+      <div style="font-family:monospace;font-size:9px;color:rgba(34,201,122,.5)">all databases</div>
     </div></div>`;
     if(svc.missing_services&&svc.missing_services.length>0){
-      html+=`<div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--amber)">⚠ no JDBC: ${svc.missing_services.join(', ')}</div>`;
+      html+=`<div style="font-family:monospace;font-size:9px;color:var(--warn);margin-top:7px">⚠ no JDBC: ${svc.missing_services.join(', ')}</div>`;
     }
-  }else{html+=`<div class="no-inc">no service data</div>`;}
+  }else{ html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:8px 0">no service data</div>`; }
   html+=`</div>`;
 
-  // Correlation timeline
+  // Correlation Timeline
   html+=`<div class="panel">
-    <div class="panel-hd"><div class="panel-title">correlation timeline</div><div class="pbadge ${env.incidents.length>0?'critical':'ok'}">${env.incidents.length>0?env.incidents.length+' active':'clear'}</div></div>
-    <div class="tl-event">
-      <div class="tl-icon ok">✓</div>
-      <div class="tl-body">
-        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
-        <div class="tl-msg">Poll cycle complete — ${env.incidents.length===0?'no incidents':''+env.incidents.length+' incident(s) correlated'}</div>
-        <div class="tl-sub">PG ${connPct.toFixed(1)}% · HTTP ${httpLat?httpLat.toFixed(0)+'ms':'—'} · ${win&&win.services?win.services.filter(s=>s.state==='Running').length+'/'+win.services.length+' services':'—'}</div>
-      </div>
-    </div>
-    <div class="tl-event">
-      <div class="tl-icon purple">⬡</div>
-      <div class="tl-body">
-        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
-        <div class="tl-msg">Correlation engine evaluated — ${env.incidents.length} pattern match(es)</div>
-        <div class="tl-sub">4 rules active · db_saturation · zero_activity · reporting_anomaly · db_unavailable</div>
-      </div>
-    </div>
-    ${win?`<div class="tl-event">
-      <div class="tl-icon info">W</div>
-      <div class="tl-body">
-        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
-        <div class="tl-msg">Windows collector — ${win.available?'WMI auth OK':'WMI failed'}</div>
-        <div class="tl-sub">${win.available?win.services.length+' services discovered · mem='+memPct.toFixed(1)+'%':(win.error||'collection failed')}</div>
-      </div>
-    </div>`:''}
-    ${(env.suppressed_warnings||[]).map(w=>`
-    <div class="tl-event" style="opacity:0.5">
-      <div class="tl-icon" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text3)">~</div>
-      <div class="tl-body">
-        <div class="tl-ts">${fmtTime(w.correlated_at)} · suppressed</div>
-        <div class="tl-msg" style="color:var(--text2)">${w.title}</div>
-        <div class="tl-sub">conf ${w.confidence}% — below threshold · timeline only</div>
-      </div>
-    </div>`).join('')}
-    ${svc?`<div class="tl-event">
-      <div class="tl-icon blue">J</div>
-      <div class="tl-body">
-        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
-        <div class="tl-msg">JDBC connection map refreshed</div>
-        <div class="tl-sub">${Object.keys(svc.connections_by_db).length} databases · ${Object.values(svc.connections_by_db).reduce((a,b)=>a+b,0)} total connections${svc.missing_services.length>0?' · ⚠ '+svc.missing_services.join(', ')+' silent':''}</div>
-      </div>
-    </div>`:''}
-  </div></div>`;
+    <div class="ptitle">
+      <span class="ptitle-lbl">correlation timeline</span>
+      ${badge(incs.length>0?incs.length+' active':'clear',incs.length>0?envSev:'ok')}
+    </div>`;
 
-  // Row 3: RCA + Incidents
-  html+=`<div class="row2">
-    <div class="rca-panel">
-      <div class="rca-hd">
-        <div class="rca-icon">⬡</div>
-        <div class="rca-title">Vorsa operational intelligence</div>
-        <div class="rca-conf">${env.incidents.length===0?'no anomalies':''+env.incidents.length+' correlated'}</div>
-      </div>
-      <div class="rca-body">
-        ${env.incidents.length===0
-          ?`No correlated anomalies in current poll cycle. All signal chains evaluated — PostgreSQL saturation, API latency, JDBC pool state, and service availability. No pattern match against active correlation rules.`
-          :env.incidents.map(inc=>`<strong>${inc.title}</strong> — ${inc.likely_cause}`).join('<br><br>')
-        }
-      </div>
-      <div>
-        ${env.incidents.length===0
-          ?`<div class="rca-action">Review pg_stat_activity if connections exceed 75%</div>
-             <div class="rca-action">Validate API health endpoint URL when available</div>
-             <div class="rca-action">Map statdb schema to enable activity checks</div>
-             <div class="rca-action">Consider alerting integration for critical incidents</div>`
-          :env.incidents.flatMap(inc=>inc.recommended_actions||[]).map(a=>`<div class="rca-action">${a}</div>`).join('')
-        }
-      </div>
-    </div>
+  // Live poll events
+  const tlEvents=[];
+  tlEvents.push({type:incs.length>0?envSev:'ok',ts:fmtTime(env.polled_at),msg:`Poll cycle complete — ${incs.length===0?'no incidents':incs.length+' incident(s) correlated'}`,sub:`PG ${pg?pg.connection_pct.toFixed(1)+'%':'—'} · HTTP ${http&&http.checks&&http.checks[0]?http.checks[0].latency_ms.toFixed(0)+'ms':'—'} · ${win&&win.services?win.services.filter(s=>s.state==='Running').length+'/'+win.services.length+' services':'—'}`});
+  tlEvents.push({type:'purple',ts:fmtTime(env.polled_at),msg:`Correlation engine — ${incs.length} pattern match(es)`,sub:'8 rules active · db_saturation · zero_activity · reporting_anomaly · db_unavailable · service_stopped · memory_pressure · silent_failure · app_layer'});
+  if(win&&win.available){
+    tlEvents.push({type:'blue',ts:fmtTime(env.polled_at),msg:'Windows collector — WMI auth OK',sub:`${win.services.length} services · mem=${win.memory_used_pct.toFixed(1)}% · jvm=${win.jvm_heap_max_mb>0?win.jvm_heap_max_mb.toFixed(0)+'MB':'?'}(${win.jvm_heap_source||'?'})`});
+  }else if(win&&!win.available){
+    tlEvents.push({type:'warn',ts:fmtTime(env.polled_at),msg:'Windows collector — WMI failed',sub:win.error||'collection failed'});
+  }
+  if(svc&&svc.connections_by_db){
+    const total=Object.values(svc.connections_by_db).reduce((a,b)=>a+b,0);
+    const missing=svc.missing_services&&svc.missing_services.length>0;
+    tlEvents.push({type:missing?'warn':'blue',ts:fmtTime(env.polled_at),msg:'JDBC connection map refreshed',sub:`${Object.keys(svc.connections_by_db).length} databases · ${total} total connections${missing?' · ⚠ '+svc.missing_services.join(', ')+' silent':''}`});
+  }
 
-    <div class="panel">
-      <div class="panel-hd"><div class="panel-title">correlated incidents</div><div class="pbadge ${env.incidents.length>0?env.overall_severity:'ok'}">${env.incidents.length>0?env.incidents.length+' active':'all clear'}</div></div>
-      ${env.incidents.length===0
-        ?`<div class="no-inc"><span style="color:var(--green);font-size:14px">✓</span>No incidents — all systems nominal</div>`
-        :env.incidents.map(inc=>`
-          <div class="inc-card ${inc.severity}">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-              <div class="inc-title">${inc.title}</div>
-              <div style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--bg4);color:${inc.confidence>=80?'var(--green)':inc.confidence>=50?'var(--amber)':'var(--text3)'}">conf ${inc.confidence||'?'}%</div>
-            </div>
-            <div class="inc-meta">${inc.incident_type} · ${inc.severity.toUpperCase()} · ${fmtTime(inc.generated_at)}</div>
-            ${(inc.evidence||[]).map(e=>`<div class="inc-ev"><span class="inc-src">${e.source.toUpperCase()}</span>${e.signal}: ${e.value}</div>`).join('')}
-            ${(inc.recommended_actions||[]).slice(0,2).map(a=>`<div class="inc-act">${a}</div>`).join('')}
-          </div>`).join('')
-      }
-    </div>
-  </div>
+  // Suppressed warnings
+  suppressed.forEach(w=>{
+    tlEvents.push({type:'suppressed',ts:fmtTime(w.correlated_at),msg:w.title,sub:`conf ${w.confidence}% — below threshold · timeline only · ${w.incident_type}`});
+  });
 
-  </div>`;
+  tlEvents.forEach((ev,i)=>{
+    const isSuppressed=ev.type==='suppressed';
+    const iconType=isSuppressed?'warn':ev.type;
+    const bc=isSuppressed?C.text3:sevColor(ev.type)||C.text3;
+    const ibg=isSuppressed?'rgba(255,255,255,.03)':sevBg(ev.type)||'rgba(255,255,255,.05)';
+    html+=`<div class="tl-event" style="opacity:${isSuppressed?.5:1}">
+      ${i<tlEvents.length-1?`<div style="position:absolute;left:10px;top:28px;bottom:-6px;width:1px;background:var(--b)"></div>`:''}
+      <div class="tl-icon" style="background:${ibg};border:1px solid ${bc}40;color:${bc}">${isSuppressed?'~':{ok:'✓',warn:'!',warning:'!',crit:'✗',critical:'✗',blue:'↻',purple:'⬡'}[ev.type]||'·'}</div>
+      <div style="flex:1">
+        <div class="tl-ts">${ev.ts}${isSuppressed?' · suppressed':''}</div>
+        <div class="tl-msg" style="${isSuppressed?'color:var(--t2)':''}">${ev.msg}</div>
+        <div class="tl-sub">${ev.sub}</div>
+      </div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+
+  // ── Row 3: Topology + Intelligence + Incidents ──
+  html+=`<div class="row3b">`;
+
+  // Service topology
+  html+=`<div class="panel" style="overflow:hidden"><div class="ptitle"><span class="ptitle-lbl">service topology</span></div>`;
+  if(win&&win.available){
+    const svcs=win.services||[];
+    const gw=svcs.find(s=>s.display_name&&s.display_name.includes('Gateway'));
+    const qp=svcs.find(s=>s.display_name&&s.display_name.includes('Platform'));
+    const wb=svcs.find(s=>s.display_name&&(s.display_name.includes('Web')||s.display_name.includes('Booking')));
+    const dbOk=pg&&pg.available&&pgSev!=='crit';
+    const gwS=gw&&gw.state!=='Running'?'crit':normSev(gw?.heap_severity||'ok');
+    const qpS=qp&&qp.state!=='Running'?'crit':normSev(qp?.heap_severity||'ok');
+    const wbS=wb&&wb.state!=='Running'?'crit':normSev(wb?.heap_severity||'ok');
+    const jdbcC=svc&&svc.connections_by_db?svc.connections_by_db['qp_central']||0:0;
+    const jdbcA=svc&&svc.connections_by_db?svc.connections_by_db['qp_agent']||0:0;
+    const jdbcS=svc&&svc.connections_by_db?svc.connections_by_db['statdb']||0:0;
+    const jdbcApp=svc&&svc.connections_by_db?svc.connections_by_db['qp_app']||0:0;
+    const jdbcCal=svc&&svc.connections_by_db?svc.connections_by_db['qp_calendar']||0:0;
+
+    function tn(label,sub,s,x,y,w,h){
+      h=h||30; const c=sevColor(s); const cr=s==='crit';
+      return `<g>
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#1a1e28" stroke="${c}" stroke-width="${cr?1.5:.5}" opacity="${cr?1:.85}"/>
+        ${cr?`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${c}" opacity=".04"/>`:''}
+        <text x="${x+w/2}" y="${y+h/2-4}" text-anchor="middle" fill="${c}" font-size="9" font-family="monospace" font-weight="500">${label}</text>
+        <text x="${x+w/2}" y="${y+h/2+7}" text-anchor="middle" fill="#5c647a" font-size="8" font-family="monospace">${sub}</text>
+      </g>`;
+    }
+    function ta(x1,y1,x2,y2,s,dash){
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sevColor(s)}" stroke-width=".5" marker-end="url(#da)" opacity=".45"${dash?' stroke-dasharray="3 3"':''}/>`;
+    }
+
+    html+=`<svg width="100%" viewBox="0 0 240 290" style="display:block">
+      <defs><marker id="da" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5c647a" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- Internet / Mobile -->
+      <rect x="50" y="4" width="140" height="22" rx="4" fill="#141720" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
+      <text x="120" y="19" text-anchor="middle" fill="#5c647a" font-size="8" font-family="monospace">Internet / Mobile · HTTPS</text>
+      ${ta(120,26,120,40,gwS,false)}
+
+      <!-- API Gateway -->
+      ${tn('API Gateway',gw?gw.state.toLowerCase():'unknown',gwS,60,42,120)}
+      ${ta(120,72,120,86,qpS,false)}
+
+      <!-- Orchestra Central -->
+      ${tn('Orchestra Central',qp?qp.state.toLowerCase()+' · '+qp.memory_mb.toFixed(0)+'MB':'unknown',qpS,20,88,200,32)}
+
+      <!-- Fan out lines -->
+      ${ta(60,120,40,136,wbS,false)}
+      ${ta(120,120,120,136,qpS,false)}
+      ${ta(180,120,200,136,qpS,false)}
+
+      <!-- Web Booking / Counter Apps / Kiosk Systems -->
+      ${tn('Web Booking',wb?wb.state.toLowerCase():'—',wbS,2,138,72)}
+      ${tn('Counter Apps','agents',qpS,84,138,72)}
+      ${tn('Kiosk Systems','displays',qpS,166,138,72)}
+
+      <!-- Converge to PostgreSQL -->
+      ${ta(38,168,100,184,dbOk?'ok':'crit',!dbOk)}
+      ${ta(120,168,120,184,dbOk?'ok':'crit',!dbOk)}
+      ${ta(202,168,140,184,dbOk?'ok':'crit',!dbOk)}
+      <text x="120" y="182" text-anchor="middle" fill="#5c647a" font-size="7" font-family="monospace">JDBC</text>
+
+      <!-- PostgreSQL -->
+      ${tn('PostgreSQL',pg?pg.connection_pct.toFixed(1)+'% pool · '+(pg.active_connections||0)+' conns':'unavailable',pgSev,50,186,140,32)}
+
+      <!-- Fan out to databases -->
+      ${ta(80,218,50,234,dbOk&&jdbcC>0?'ok':'crit',!(dbOk&&jdbcC>0))}
+      ${ta(120,218,120,234,dbOk&&jdbcS>0?'ok':'crit',!(dbOk&&jdbcS>0))}
+      ${ta(160,218,190,234,dbOk&&jdbcA>0?'ok':'crit',!(dbOk&&jdbcA>0))}
+
+      <!-- DB nodes -->
+      ${tn('qp_central',jdbcC+' JDBC',dbOk&&jdbcC>0?'ok':'crit',2,236,72)}
+      ${tn('statdb',jdbcS+' JDBC',dbOk&&jdbcS>0?'ok':'crit',84,236,72)}
+      ${tn('qp_agent',jdbcA+' JDBC',dbOk&&jdbcA>0?'ok':'crit',166,236,72)}
+
+      <!-- statdb → Reporting -->
+      ${ta(120,266,120,270,dbOk?'blue':'crit',true)}
+      
+
+      <!-- Reporting / BI -->
+      <rect x="40" y="272" width="160" height="18" rx="4" fill="#141720" stroke="${sevColor('blue')}40" stroke-width=".5"/>
+      <text x="120" y="284" text-anchor="middle" fill="${sevColor('blue')}" font-size="9" font-family="monospace" opacity=".7">Reporting / BI</text>
+      
+
+      <!-- qp_app + qp_calendar small -->
+      <text x="120" y="287" text-anchor="middle" fill="#3a4152" font-size="7" display="none" font-family="monospace">also: qp_app(${jdbcApp} JDBC) · qp_calendar(${jdbcCal} JDBC)</text>
+    </svg>`;
+  }else{
+    html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:8px 0">no windows data</div>`;
+  }
+  html+=`</div>`;
+
+  // Vorsa Intelligence
+  html+=`<div class="panel" style="border-left:3px solid var(--purple)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+      <div style="width:18px;height:18px;background:rgba(124,110,247,.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--purple)">⬡</div>
+      <span style="font-family:monospace;font-size:9px;color:var(--purple);letter-spacing:.08em;text-transform:uppercase">Vorsa operational intelligence</span>
+      ${badge(incs.length===0?'no anomalies':incs.length+' correlated',incs.length===0?'ok':envSev)}
+    </div>
+    <div style="font-size:11px;color:var(--t2);line-height:1.65;margin-bottom:9px">
+      ${incs.length===0
+        ?'No correlated anomalies in current poll cycle. All signal chains evaluated — PostgreSQL saturation, API latency, JDBC pool state, and service availability. No pattern match against active correlation rules.'
+        :incs.map(inc=>`<strong style="color:var(--t1)">${inc.title}</strong> — conf ${inc.confidence||'?'}%`).join('<br>')}
+    </div>`;
+
+  // Fingerprints from incident history  
+  const fps=[];
+  if(incs.length>0){
+    incs.forEach(inc=>{
+      fps.push({n:inc.incident_type,conf:inc.confidence||0,ls:'now'});
+    });
+  }
+  if(fps.length>0){
+    html+=`<div style="font-family:monospace;font-size:9px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px">active incident fingerprints</div>`;
+    fps.forEach(fp=>{
+      html+=`<div class="fp-row">
+        <span style="font-family:monospace;font-size:10px;color:var(--t2);flex:1">${fp.n}</span>
+        ${badge(fp.conf+'%',fp.conf>=80?'ok':'warn')}
+        <span style="font-family:monospace;font-size:9px;color:var(--t3)">${fp.ls}</span>
+      </div>`;
+    });
+    html+=`<div style="height:7px"></div>`;
+  }
+
+  const defaultActs=['Review pg_stat_activity if connections exceed 75%','Validate API health endpoint URL when available','Map statdb schema to enable activity checks','Consider alerting integration for critical incidents'];
+  const acts=incs.length>0&&incs[0].recommended_actions?incs[0].recommended_actions:defaultActs;
+  acts.forEach(a=>{ html+=`<div class="rca-act">${a}</div>`; });
+  html+=`</div>`;
+
+  // Incidents
+  html+=`<div class="panel">
+    <div class="ptitle">
+      <span class="ptitle-lbl">correlated incidents</span>
+      ${badge(incs.length>0?incs.length+' active':'all clear',incs.length>0?envSev:'ok')}
+    </div>`;
+  if(incs.length===0){
+    html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:7px 0;display:flex;align-items:center;gap:6px"><span style="color:var(--ok)">✓</span>No incidents — all systems nominal</div>`;
+  }else{
+    incs.forEach(inc=>{
+      const is=normSev(inc.severity);
+      const ic=sevColor(is);
+      html+=`<div class="inc-card" style="border-left:3px solid ${ic};background:${sevBg(is)};border-top:1px solid ${sevBd(is)};border-right:1px solid ${sevBd(is)};border-bottom:1px solid ${sevBd(is)}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px">
+          <div style="font-size:11px;font-weight:500;color:var(--t1)">${inc.title}</div>
+          ${badge('conf '+(inc.confidence||'?')+'%',inc.confidence>=80?'ok':inc.confidence>=50?'warn':'ok')}
+        </div>
+        <div style="font-family:monospace;font-size:9px;color:var(--t3);margin-bottom:5px">${inc.incident_type} · ${(inc.severity||'').toUpperCase()} · ${fmtTime(inc.generated_at)}</div>
+        ${(inc.evidence||[]).map(e=>`<div style="font-family:monospace;font-size:9px;color:var(--t2);display:flex;gap:8px;padding:2px 0">
+          <span style="color:var(--t3);min-width:58px">${e.source.toUpperCase()}</span>
+          <span>${e.signal}: <span style="color:var(--t1)">${e.value}</span></span>
+        </div>`).join('')}
+        ${(inc.recommended_actions||[]).slice(0,2).map(a=>`<div style="font-family:monospace;font-size:9px;color:var(--t2);padding:2px 0 2px 10px;margin-top:2px;position:relative"><span style="position:absolute;left:0;color:var(--t3)">›</span>${a}</div>`).join('')}
+      </div>`;
+    });
+  }
+  html+=`</div></div>`;
 
   document.getElementById('content').innerHTML=html;
 }
 
 loadState();
-setInterval(loadState,60000);
+setInterval(loadState, 60000);
 </script>
 </body>
 </html>
