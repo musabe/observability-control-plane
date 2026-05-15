@@ -35,3 +35,10 @@ dashboard/state.json
 dashboard/incident_history.jsonl
 patch_*.py
 debug_*.py
+
+incidents/*.md
+logs/*.jsonl
+dashboard/state.json
+dashboard/incident_history.jsonl
+**/__pycache__/
+*.pyc
