@@ -11,6 +11,8 @@ summaries with confidence scoring and actionable remediation steps.
 
 ![Architecture](docs/screenshots/architecture.png)
 
+> This control plane polls application, database, Windows service, and Qmatic-specific signals every 60 seconds, correlates failures against known incident patterns, computes service health, and generates RCA-ready incident artifacts.
+
 ---
 
 ## What it does
@@ -95,7 +97,7 @@ All environments are defined in `config/environments.yaml`.
 
 ```yaml
 environments:
-  - name: cxm-test-local
+  - name: northvale-council
     type: qmatic
     enabled: true
     timezone: America/Toronto
@@ -256,3 +258,4 @@ tzdata
 ```
 
 Python 3.11+ required. Windows PowerShell required for WMI collection.
+

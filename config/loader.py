@@ -66,6 +66,7 @@ class EnvironmentConfig:
     business_hours: dict
     windows_host: Optional[str]
     windows_user: str
+    windows_config: Optional[dict]
     postgres: Optional[PostgresConfig]
     http_checks: list[HttpCheck]
     activity: ActivityConfig
@@ -131,6 +132,7 @@ def load_environments(config_path: str = "config/environments.yaml") -> list[Env
 
         windows_host = entry.get('windows', {}).get('host', None)
         windows_user = entry.get('windows', {}).get('username', 'Administrator')
+        windows_config = entry.get('windows', None)
 
         environments.append(EnvironmentConfig(
             name=entry["name"],
@@ -141,6 +143,7 @@ def load_environments(config_path: str = "config/environments.yaml") -> list[Env
             business_hours=entry.get("business_hours", {}),
             windows_host=windows_host,
             windows_user=windows_user,
+            windows_config=windows_config,
             postgres=pg_cfg,
             http_checks=http_checks,
             activity=activity,

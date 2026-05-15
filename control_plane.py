@@ -128,22 +128,28 @@ def poll_environment(env, correlator: CorrelationEngine, rca: RCAGenerator) -> d
     # ── 2b. Windows memory + service checks ─────────────────────────────
     if env.windows_host:
         try:
-            win_collector = WindowsCollector(env.name, env.windows_host)
+            win_collector = WindowsCollector(env.name, env.windows_host, env.windows_config)
             win_snap = win_collector.collect()
             env_state["windows"] = {
                 "available": win_snap.available,
                 "severity": win_snap.severity,
+                "memory_severity": win_snap.memory_severity,
                 "total_memory_mb": win_snap.total_memory_mb,
                 "free_memory_mb": win_snap.free_memory_mb,
                 "used_memory_mb": win_snap.used_memory_mb,
                 "memory_used_pct": win_snap.memory_used_pct,
                 "qmatic_total_memory_mb": win_snap.qmatic_total_memory_mb,
+                "jvm_heap_max_mb": win_snap.jvm_heap_max_mb,
+                "jvm_heap_source": win_snap.jvm_heap_source,
                 "services": [
                     {
                         "name": s.name,
                         "display_name": s.display_name,
                         "state": s.state,
                         "memory_mb": s.memory_mb,
+                        "xmx_mb": s.xmx_mb,
+                        "heap_used_pct": s.heap_used_pct,
+                        "heap_severity": s.heap_severity,
                     }
                     for s in win_snap.services
                 ],

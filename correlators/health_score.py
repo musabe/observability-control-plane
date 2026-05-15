@@ -112,10 +112,11 @@ def calculate_health_score(
     # ── Windows / service signals ─────────────────────────────────────────────
     if win_snap and isinstance(win_snap, dict) and win_snap.get("available"):
         mem_pct = win_snap.get("memory_used_pct", 0)
-        if mem_pct >= 90:
+        mem_sev = win_snap.get("memory_severity", "ok")
+        if mem_sev == "critical":
             score -= 15
             reasons.append(f"server_memory({mem_pct:.0f}%) -15")
-        elif mem_pct >= 80:
+        elif mem_sev == "warning":
             score -= 8
             reasons.append(f"server_memory({mem_pct:.0f}%) -8")
 
@@ -124,6 +125,18 @@ def calculate_health_score(
         for s in stopped:
             score -= 15
             reasons.append(f"service_stopped({s.get('display_name','?')}) -15")
+
+        # JVM heap penalties
+        for s in services:
+            heap_sev = s.get("heap_severity", "ok")
+            heap_pct = s.get("heap_used_pct", 0)
+            if heap_pct > 0:
+                if heap_sev == "critical":
+                    score -= 20
+                    reasons.append(f"jvm_heap_critical({s.get('display_name','?')} {heap_pct:.0f}%) -20")
+                elif heap_sev == "warning":
+                    score -= 10
+                    reasons.append(f"jvm_heap_warning({s.get('display_name','?')} {heap_pct:.0f}%) -10")
 
     # ── Floor / ceiling ───────────────────────────────────────────────────────
     score = max(0, min(100, score))

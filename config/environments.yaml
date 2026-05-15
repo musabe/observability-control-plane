@@ -10,11 +10,11 @@ global:
 
 environments:
 
-  - name: cxm-test-local
+  - name: northvale-council
     type: qmatic
     enabled: true
     timezone: America/Toronto
-    description: "CXM Test System - Local (192.168.68.114)"
+    description: "Northvale Council - Citizen Services (192.168.68.114)"
 
     business_hours:
       monday:    ["08:00", "18:00"]
@@ -28,6 +28,12 @@ environments:
     windows:
       host: 192.168.68.114
       username: Administrator
+      qmatic_jvm_heap_max_mb: 4096
+      thresholds:
+        server_memory_warning_pct: 80
+        server_memory_critical_pct: 90
+        jvm_heap_warning_pct: 80
+        jvm_heap_critical_pct: 90
 
     postgres:
       host: 192.168.68.114

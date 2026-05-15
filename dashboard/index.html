@@ -358,7 +358,7 @@ function renderEnv(i){
           <div class="svc-dot ${dotClass}"></div>
           <div class="svc-name">${s.display_name}</div>
           <div class="svc-state ${stateClass}">${s.state.toLowerCase()}</div>
-          <div class="svc-mem">${s.memory_mb>0?s.memory_mb.toFixed(0)+' MB':'—'}</div>
+          <div class="svc-mem">${s.memory_mb>0?s.memory_mb.toFixed(0)+' MB':'—'}${s.heap_used_pct>0?' <span style="font-size:9px;color:'+(s.heap_severity==='critical'?'var(--red)':s.heap_severity==='warning'?'var(--amber)':'var(--text3)')+'">'+s.heap_used_pct.toFixed(0)+'%</span>':''}</div>
         </div>`;
       });
     }
@@ -428,6 +428,15 @@ function renderEnv(i){
         <div class="tl-sub">${win.available?win.services.length+' services discovered · mem='+memPct.toFixed(1)+'%':(win.error||'collection failed')}</div>
       </div>
     </div>`:''}
+    ${(env.suppressed_warnings||[]).map(w=>`
+    <div class="tl-event" style="opacity:0.5">
+      <div class="tl-icon" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text3)">~</div>
+      <div class="tl-body">
+        <div class="tl-ts">${fmtTime(w.correlated_at)} · suppressed</div>
+        <div class="tl-msg" style="color:var(--text2)">${w.title}</div>
+        <div class="tl-sub">conf ${w.confidence}% — below threshold · timeline only</div>
+      </div>
+    </div>`).join('')}
     ${svc?`<div class="tl-event">
       <div class="tl-icon blue">J</div>
       <div class="tl-body">
@@ -469,7 +478,10 @@ function renderEnv(i){
         ?`<div class="no-inc"><span style="color:var(--green);font-size:14px">✓</span>No incidents — all systems nominal</div>`
         :env.incidents.map(inc=>`
           <div class="inc-card ${inc.severity}">
-            <div class="inc-title">${inc.title}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <div class="inc-title">${inc.title}</div>
+              <div style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--bg4);color:${inc.confidence>=80?'var(--green)':inc.confidence>=50?'var(--amber)':'var(--text3)'}">conf ${inc.confidence||'?'}%</div>
+            </div>
             <div class="inc-meta">${inc.incident_type} · ${inc.severity.toUpperCase()} · ${fmtTime(inc.generated_at)}</div>
             ${(inc.evidence||[]).map(e=>`<div class="inc-ev"><span class="inc-src">${e.source.toUpperCase()}</span>${e.signal}: ${e.value}</div>`).join('')}
             ${(inc.recommended_actions||[]).slice(0,2).map(a=>`<div class="inc-act">${a}</div>`).join('')}
