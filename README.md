@@ -1,181 +1,178 @@
-# 🔭 Observability Control Plane
+# observability-control-plane
 
-> Dockerized observability lab for detecting, correlating, and remediating production incidents across APIs, databases, queues, and background services.
+Operational intelligence and reliability platform for hosted Qmatic environments.
 
-![Language](https://img.shields.io/badge/language-Go%20%2B%20Python-blue?style=flat-square)
-![Stack](https://img.shields.io/badge/stack-Prometheus%20%2B%20Grafana-orange?style=flat-square)
-![Services](https://img.shields.io/badge/services-4%20Go%20microservices-teal?style=flat-square)
-![Incidents](https://img.shields.io/badge/incident%20types-8-red?style=flat-square)
-![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)
-
-Part of the **operational engineering portfolio** alongside [connector-support-toolkit](https://github.com/musabe/connector-support-toolkit) — which validates readiness *before* data flows, while this diagnoses incidents *during* runtime.
-
----
-
-## Overview
-
-A production-like microservices environment with real traffic, real metrics, and a fault injection layer that can simulate the 8 most common production incident types on demand. Designed for:
-
-- **Incident response practice** — trigger a real failure, diagnose it, remediate it
-- **SRE portfolio demonstration** — shows full observability lifecycle end-to-end
-- **Runbook validation** — prove your runbooks actually work against live failures
+Detects operational degradation before customers report it. Correlates signals across
+PostgreSQL health, HTTP availability, and Qmatic queue activity. Generates RCA-style
+incident summaries with actionable remediation steps.
 
 ---
 
 ## Architecture
 
-![Architecture](docs/screenshots/architecture.png)
+```
+observability-control-plane/
+│
+├── control_plane.py                  ← main poll loop
+│
+├── config/
+│   ├── environments.yaml             ← environment definitions (YAML)
+│   └── loader.py                     ← config loader + secret injection
+│
+├── collectors/
+│   ├── postgres_collector.py         ← pg_stat_* system view collector
+│   └── http_collector.py             ← HTTP latency + reachability checks
+│
+├── detectors/                        ← (generic detector base, future use)
+│
+├── correlators/
+│   └── correlator.py                 ← multi-signal correlation engine
+│
+├── rca/
+│   └── rca_generator.py              ← structured incident + markdown RCA output
+│
+├── integrations/
+│   └── qmatic/
+│       ├── qmatic_postgres_checks.py ← Qmatic application table queries
+│       ├── qmatic_activity_checks.py ← zero activity, stale windows, drops
+│       └── qmatic_reporting_checks.py← duplicate visits, carryover, anomalies
+│
+├── runbooks/
+│   ├── db-connection-exhaustion.md
+│   └── zero-activity-business-hours.md
+│
+├── incidents/
+│   └── templates/
+│       └── sample-rca-critical.md    ← example generated RCA
+│
+├── dashboards/
+│   └── state.json                    ← written by control_plane.py each cycle
+│
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Design principles
+
+- **Domain-aware**: Qmatic is a first-class integration, not a generic target
+- **Read-only first**: all database access uses SELECT only, read-only user
+- **Modular**: collectors, detectors, correlators are independently testable
+- **Decoupled**: the generic platform architecture is not tightly coupled to Qmatic
+- **Operational**: outputs are engineering-readable, not customer-facing
+- **Minimal dependencies**: psycopg2, httpx, pyyaml — that's it
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Clone and start the full stack
-git clone https://github.com/musabe/observability-control-plane
-cd observability-control-plane
-docker compose up -d
+pip install -r requirements.txt
 
-# 2. Verify all services are healthy
-python orchestrator/fault_injector.py status
+# Set DB passwords as environment variables
+export OBS_DB_PASSWORD_CXM_CLIENT_ALPHA=yourpassword
+export OBS_DB_PASSWORD_CXM_CLIENT_BETA=yourpassword
 
-# 3. Open dashboards
-open http://localhost:3000   # Grafana (admin/admin)
-open http://localhost:9090   # Prometheus
-open http://localhost:15672  # RabbitMQ management (guest/guest)
+# Single poll cycle (useful for testing)
+python control_plane.py --once
+
+# Continuous polling (60s interval)
+python control_plane.py
 ```
 
 ---
 
-## Incident types
+## Configuration
 
-| # | Incident | Service | Trigger command |
-|---|----------|---------|----------------|
-| 001 | DB connection pool exhaustion | db-service | `trigger db-exhaustion` |
-| 002 | Auth failures | api-gateway | `trigger auth-failures --pct 30` |
-| 003 | API latency spike | api-gateway | `trigger api-latency --ms 500` |
-| 004 | Webhook delivery retries | queue-worker | `trigger webhook-retries` |
-| 005 | Queue consumer lag | queue-worker | `trigger queue-lag --ms 3000` |
-| 006 | Memory pressure | background-job | `trigger memory-pressure` |
-| 007 | Broken TLS | api-gateway | `trigger broken-tls` |
-| 008 | Rate limiting | api-gateway | `trigger rate-limiting --rps 5` |
+Environments are defined in `config/environments.yaml`.
 
-### Running an incident
+Database passwords are **never** stored in YAML. Set them as environment variables:
+```
+OBS_DB_PASSWORD_{ENV_NAME_UPPER_SNAKE}
+```
 
-```bash
-# Install orchestrator dependencies
-pip install -r orchestrator/requirements.txt
+Example: environment named `cxm-client-alpha` → `OBS_DB_PASSWORD_CXM_CLIENT_ALPHA`
 
-# Trigger an incident
-python orchestrator/fault_injector.py trigger db-exhaustion
+---
 
-# Watch metrics in Grafana or Prometheus
-# ...diagnose and remediate using the runbook...
+## Correlation rules
 
-# Reset all faults
-python orchestrator/fault_injector.py reset all
+The correlator detects compound failure patterns:
 
-# Check status
-python orchestrator/fault_injector.py status
+| Rule | Signals | Severity |
+|------|---------|----------|
+| `db_saturation_api_cascade` | PG connections > 75% + HTTP latency elevated | warning/critical |
+| `zero_activity_business_hours` | Zero delivered visits during business hours | critical |
+| `reporting_anomaly_with_db_pressure` | Duplicate visit IDs + long-running queries | warning |
+| `db_unavailable` | PostgreSQL unreachable | critical |
+
+Add new rules by defining a function decorated with `@correlation_rule` in `correlators/correlator.py`.
+
+---
+
+## Output
+
+Each poll cycle writes:
+- `dashboard/state.json` — current state for all environments
+- `incidents/<timestamp>_<env>_<type>.md` — RCA markdown per incident
+- `logs/alerts.jsonl` — JSONL log of all alerts
+
+---
+
+## Database permissions
+
+The read-only database user needs:
+
+```sql
+-- System views (generic postgres collector)
+GRANT pg_read_all_stats TO readonly_user;
+GRANT pg_monitor TO readonly_user;
+
+-- Qmatic application tables (qmatic integration)
+GRANT SELECT ON visit TO readonly_user;
+GRANT SELECT ON scheduled_job TO readonly_user;
+GRANT SELECT ON branch TO readonly_user;
+GRANT SELECT ON service_point TO readonly_user;
 ```
 
 ---
 
-## Service endpoints
+## Adding a new environment
 
-| Service | Port | Health | Metrics | Fault control |
-|---------|------|--------|---------|---------------|
-| api-gateway | 8080 | `/health` | `/metrics` | `/fault/*` |
-| db-service | 8081 | `/health` | `/metrics` | `/fault/*` |
-| queue-worker | 8082 | `/health` | `/metrics` | `/fault/*` |
-| background-job | 8083 | `/health` | `/metrics` | `/fault/*` |
-| Prometheus | 9090 | — | — | — |
-| Grafana | 3000 | — | — | — |
-| RabbitMQ UI | 15672 | — | — | — |
+1. Add an entry to `config/environments.yaml`
+2. Set the password environment variable
+3. Restart `control_plane.py`
+
+No code changes required.
 
 ---
 
-## SLOs
+## Future phases
 
-Defined in `slo/` — each with Prometheus queries, burn rate thresholds, and runbook links:
+**Phase 2 — Alerting integration**
+- PagerDuty / OpsGenie webhook on critical incidents
+- Slack notification on warning → critical transitions
+- Email digest for daily operational summary
 
-| SLO | Target | Error budget (30d) |
-|-----|--------|--------------------|
-| API p99 latency < 500ms | 99.9% | 43.8 minutes |
-| API availability | 99.95% | 21.9 minutes |
-| DB query success rate | 99.95% | 21.9 minutes |
-| Queue processing throughput | 99.5% | 3.6 hours |
+**Phase 3 — Historical trending**
+- SQLite or PostgreSQL backend for control plane state
+- 7-day visit volume trending per environment
+- Connection pool utilisation heatmap
 
-See [`slo/availability-targets.md`](slo/availability-targets.md) for full policy.
+**Phase 4 — AI-assisted RCA**
+- Pass correlated incident + evidence to Claude API
+- Generate natural-language RCA narrative with confidence level
+- Suggest likely root cause from historical incident patterns
 
----
-
-## Incidents
-
-Captured evidence from real fault injection runs stored in `incidents/`:
-
-```
-incidents/
-├── incident-001-db-exhaustion/
-│   ├── timeline.md      ← minute-by-minute event log
-│   ├── metrics.png      ← Grafana screenshot at peak
-│   ├── logs.txt         ← service logs during incident
-│   ├── rca.md           ← root cause analysis
-│   └── remediation.md   ← what fixed it
-```
+**Phase 5 — Self-service dashboard**
+- Serve `dashboard/state.json` via a lightweight FastAPI endpoint
+- Browser-based operational dashboard (real data, not mock)
+- Per-environment drill-down with historical incident list
 
 ---
 
-## Runbooks
+## Related
 
-Operational runbooks in `runbooks/` covering detection, investigation, and remediation for each incident type. Each runbook includes:
-- Prometheus queries to run during diagnosis
-- Step-by-step remediation commands
-- Escalation criteria
-
----
-
-## Project structure
-
-```
-observability-control-plane/
-├── services/
-│   ├── api-gateway/       ← REST gateway, auth, rate limiting, TLS
-│   ├── db-service/        ← PostgreSQL CRUD, connection pool
-│   ├── queue-worker/      ← RabbitMQ consumer, webhook delivery
-│   └── background-job/    ← Scheduled jobs, Redis caching
-├── orchestrator/
-│   ├── fault_injector.py  ← Trigger/reset all 8 incident types
-│   ├── detector.py        ← Poll Prometheus, detect anomalies
-│   ├── correlator.py      ← Link signals across services
-│   └── rca_generator.py   ← Auto-generate RCA docs
-├── incidents/             ← Captured incident evidence
-├── slo/                   ← SLO definitions + error budget policy
-├── runbooks/              ← Operational runbooks
-├── dashboards/            ← Grafana dashboard JSON
-├── config/
-│   ├── prometheus.yml
-│   └── alerting-rules.yml
-└── docker-compose.yml
-```
-
----
-
-## Ecosystem
-
-This project is part of a connected operational engineering portfolio:
-
-| Project | Role |
-|---------|------|
-| [connector-support-toolkit](https://github.com/musabe/connector-support-toolkit) | Pre-flight readiness validation for data connectors |
-| **observability-control-plane** | Runtime incident detection, diagnosis, and remediation |
-
----
-
-## Author
-
-**Mustapha Abella**
-Senior Technical Support Engineer
-Focused on API-driven SaaS, data integration, and developer-facing support
-
-[github.com/musabe](https://github.com/musabe)
+- `connector-support-toolkit` — validates PostgreSQL, Redis, RabbitMQ configuration
+  before deployment (runs before this platform takes over for runtime monitoring)

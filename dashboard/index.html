@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorsa — Control Plane</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0b0d11;--bg1:#0f1117;--bg2:#141720;--bg3:#1a1e28;--bg4:#1f2435;
+  --border:#ffffff0f;--border2:#ffffff18;--border3:#ffffff26;
+  --text1:#e8eaf0;--text2:#9ba3b8;--text3:#5c647a;
+  --purple:#7c6ef7;--purple2:#6358d4;--purple3:#3d3580;--purple4:#1e1a3f;
+  --green:#22c97a;--green2:#1a9c5e;--green3:#0d3d27;
+  --amber:#f0a42e;--amber2:#c07d18;--amber3:#3d2a08;
+  --red:#ef4444;--red2:#b83232;--red3:#3d1414;
+  --blue:#4a9eff;--blue2:#2b6fd4;--blue3:#0d2a4d;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+}
+body{background:var(--bg0);color:var(--text1);font-family:var(--sans);font-size:13px;min-height:100vh;overflow-x:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--bg1);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;height:48px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-logo{height:28px;width:auto;display:block}
+.brand-tag{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;border-left:1px solid var(--border2);padding-left:14px}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.pulse-wrap{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text3)}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.clock{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.env-chip{background:var(--purple4);border:1px solid var(--purple3);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:10px;color:var(--purple)}
+.refresh-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;transition:all .15s}
+.refresh-btn:hover{color:var(--text1);border-color:var(--border3)}
+.layout{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 48px)}
+.sidebar{background:var(--bg1);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto}
+.sidebar-sec{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;padding:0 14px 8px}
+.env-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.env-item:hover{background:var(--bg2)}
+.env-item.active{background:var(--bg2);border-left-color:var(--purple)}
+.env-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.env-dot.ok{background:var(--green)}
+.env-dot.warning{background:var(--amber);animation:blink 2s infinite}
+.env-dot.critical{background:var(--red);animation:blink 1s infinite}
+.env-dot.unknown{background:var(--text3)}
+.env-name{font-family:var(--mono);font-size:10px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.env-item.active .env-name{color:var(--text1)}
+.env-badge{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px}
+.env-badge.ok{background:var(--green3);color:var(--green)}
+.env-badge.warning{background:var(--amber3);color:var(--amber)}
+.env-badge.critical{background:var(--red3);color:var(--red)}
+.sidebar-sep{height:1px;background:var(--border);margin:10px 14px}
+.sidebar-link{display:flex;align-items:center;gap:8px;padding:6px 14px;font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;transition:color .15s}
+.sidebar-link:hover{color:var(--text2)}
+.content{overflow-y:auto;padding:16px}
+.main-grid{display:flex;flex-direction:column;gap:12px}
+.health-bar{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.health-left{display:flex;align-items:center;gap:18px}
+.health-score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1}
+.health-score.ok{color:var(--green)}
+.health-score.warning{color:var(--amber)}
+.health-score.critical{color:var(--red)}
+.health-score-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.health-div{width:1px;height:44px;background:var(--border2)}
+.hstats{display:flex;gap:22px}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--text1)}
+.hstat-val.ok{color:var(--green)}
+.hstat-val.warning{color:var(--amber)}
+.hstat-val.critical{color:var(--red)}
+.hstat-val.blue{color:var(--blue)}
+.hstat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.health-right{display:flex;align-items:center;gap:14px}
+.env-meta{text-align:right}
+.env-meta-line{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:2px}
+.sev-badge{padding:4px 12px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600;border:1px solid}
+.sev-badge.ok{background:var(--green3);color:var(--green);border-color:var(--green2)}
+.sev-badge.warning{background:var(--amber3);color:var(--amber);border-color:var(--amber2)}
+.sev-badge.critical{background:var(--red3);color:var(--red);border-color:var(--red2);animation:blink 1s infinite}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.panel-title{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase}
+.pbadge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px}
+.pbadge.ok{background:var(--green3);color:var(--green)}
+.pbadge.warning{background:var(--amber3);color:var(--amber)}
+.pbadge.critical{background:var(--red3);color:var(--red)}
+.pbadge.blue{background:var(--blue3);color:var(--blue)}
+.pbadge.unknown{background:var(--bg4);color:var(--text3)}
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.mrow:last-child{border-bottom:none}
+.mkey{font-family:var(--mono);font-size:10px;color:var(--text2)}
+.mval{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text1)}
+.mval.ok{color:var(--green)}
+.mval.warning{color:var(--amber)}
+.mval.critical{color:var(--red)}
+.mval.blue{color:var(--blue)}
+.mval.dim{color:var(--text3)}
+.bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.bar-fill.ok{background:var(--green)}
+.bar-fill.warning{background:var(--amber)}
+.bar-fill.critical{background:var(--red)}
+.bar-fill.blue{background:var(--blue)}
+.svc-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.svc-row:last-child{border-bottom:none}
+.svc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.svc-dot.running{background:var(--green)}
+.svc-dot.stopped{background:var(--text3)}
+.svc-dot.critical{background:var(--red);animation:blink 1s infinite}
+.svc-name{font-family:var(--mono);font-size:10px;color:var(--text2);flex:1}
+.svc-state{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px}
+.svc-state.running{background:var(--green3);color:var(--green)}
+.svc-state.stopped{background:var(--bg4);color:var(--text3)}
+.svc-mem{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:55px;text-align:right}
+.db-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.db-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.db-name{font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:4px}
+.db-conn{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--blue)}
+.db-conn-label{font-size:9px;color:var(--text3)}
+.db-item.total{background:var(--green3);border-color:var(--green2)}
+.db-item.total .db-name{color:var(--green2)}
+.db-item.total .db-conn{color:var(--green);font-size:18px}
+.db-item.total .db-conn-label{color:var(--green2)}
+.tl-event{display:flex;align-items:flex-start;gap:10px;padding:7px 0;position:relative}
+.tl-event::before{content:'';position:absolute;left:16px;top:24px;bottom:-7px;width:1px;background:var(--border2)}
+.tl-event:last-child::before{display:none}
+.tl-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-family:var(--mono)}
+.tl-icon.ok{background:var(--green3);border:1px solid var(--green2);color:var(--green)}
+.tl-icon.info{background:var(--blue3);border:1px solid var(--blue2);color:var(--blue)}
+.tl-icon.warning{background:var(--amber3);border:1px solid var(--amber2);color:var(--amber)}
+.tl-icon.critical{background:var(--red3);border:1px solid var(--red2);color:var(--red)}
+.tl-icon.purple{background:var(--purple4);border:1px solid var(--purple3);color:var(--purple)}
+.tl-body{flex:1}
+.tl-ts{font-family:var(--mono);font-size:9px;color:var(--text3)}
+.tl-msg{font-family:var(--mono);font-size:10px;color:var(--text1);margin-top:1px}
+.tl-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.rca-panel{background:var(--bg2);border:1px solid var(--purple3);border-left:3px solid var(--purple);border-radius:8px;padding:12px}
+.rca-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rca-icon{width:20px;height:20px;background:var(--purple4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--purple)}
+.rca-title{font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:.06em;text-transform:uppercase}
+.rca-conf{margin-left:auto;font-family:var(--mono);font-size:9px;background:var(--purple4);border:1px solid var(--purple3);border-radius:3px;padding:2px 6px;color:var(--purple)}
+.rca-body{font-size:11px;color:var(--text2);line-height:1.65;margin-bottom:10px}
+.rca-action{display:flex;align-items:flex-start;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text2);padding:4px 6px;background:var(--bg3);border-radius:4px;margin-bottom:4px}
+.rca-action::before{content:'›';color:var(--purple);flex-shrink:0}
+.inc-card{border-radius:6px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--red);background:rgba(61,20,20,.2);border-top:1px solid var(--red3);border-right:1px solid var(--red3);border-bottom:1px solid var(--red3)}
+.inc-card.warning{border-left-color:var(--amber);background:rgba(61,42,8,.2);border-color:var(--amber3)}
+.inc-title{font-size:12px;font-weight:500;color:var(--text1);margin-bottom:3px}
+.inc-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:6px}
+.inc-ev{font-family:var(--mono);font-size:9px;color:var(--text2);padding:2px 0;display:flex;gap:8px}
+.inc-src{color:var(--text3);min-width:56px}
+.inc-act{font-size:10px;color:var(--text2);padding:2px 0 2px 10px;position:relative}
+.inc-act::before{content:'›';position:absolute;left:0;color:var(--text3)}
+.no-inc{font-family:var(--mono);font-size:10px;color:var(--text3);padding:8px 0;display:flex;align-items:center;gap:6px}
+.error-box{background:var(--red3);border:1px solid var(--red2);border-radius:8px;padding:14px;margin:20px;font-family:var(--mono);font-size:11px;color:var(--red)}
+.loading-box{display:flex;align-items:center;justify-content:center;height:300px;font-family:var(--mono);font-size:11px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <img class="brand-logo" src="vorsa_logo.png" alt="Vorsa">
+    <div class="brand-tag">your stack, under control.</div>
+  </div>
+  <div class="topbar-right">
+    <div class="pulse-wrap"><div class="pulse"></div><span id="poll-status">loading...</span></div>
+    <div class="clock" id="clock"></div>
+    <div class="env-chip" id="env-chip">—</div>
+    <button class="refresh-btn" onclick="loadState()">↺ refresh</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-sec">environments</div>
+    <div id="env-list"></div>
+    <div class="sidebar-sep"></div>
+    <div class="sidebar-sec">platform</div>
+    <div class="sidebar-link" onclick="window.open('state.json','_blank')">↗ state.json</div>
+    <div class="sidebar-link" onclick="window.open('../incidents/','_blank')">↗ incidents</div>
+    <div class="sidebar-link" onclick="window.open('../logs/alerts.jsonl','_blank')">↗ alert log</div>
+    <div class="sidebar-sep"></div>
+    <div class="sidebar-sec">vorsa</div>
+    <div class="sidebar-link">correlation rules</div>
+    <div class="sidebar-link">runbooks</div>
+    <div class="sidebar-link">config</div>
+  </div>
+  <div class="content" id="content">
+    <div class="loading-box">connecting to control plane...</div>
+  </div>
+</div>
+
+<script>
+let state=null;
+let activeIdx=0;
+
+function tick(){
+  const now=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent=
+    `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())} UTC`;
+}
+tick();setInterval(tick,1000);
+
+function fmtTime(iso){
+  if(!iso)return'—';
+  const d=new Date(iso.replace(' ','T').replace('+00:00','Z'));
+  const p=n=>String(n).padStart(2,'0');
+  return`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
+}
+
+function healthScore(env){
+  return env.health_score !== undefined && env.health_score !== null
+    ? env.health_score
+    : (env.overall_severity==='critical' ? 35 : env.overall_severity==='warning' ? 70 : 97);
+}
+
+function healthLabel(env){
+  return env.health_label || (env.overall_severity==='critical' ? 'CRITICAL' : env.overall_severity==='warning' ? 'DEGRADED' : 'HEALTHY');
+}
+
+function barClass(pct,wThresh,cThresh){
+  if(pct>=cThresh)return'critical';
+  if(pct>=wThresh)return'warning';
+  return'ok';
+}
+
+async function loadState(){
+  document.getElementById('poll-status').textContent='refreshing...';
+  try{
+    const res=await fetch('state.json?t='+Date.now());
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    state=await res.json();
+    render();
+    document.getElementById('poll-status').textContent='last poll: '+fmtTime(state.polled_at);
+  }catch(e){
+    document.getElementById('poll-status').textContent='error';
+    document.getElementById('content').innerHTML=
+      `<div class="error-box">Could not load state.json<br><br>${e.message}<br><br>Start the HTTP server from the repo root:<br>python -m http.server 8888<br><br>Then open: http://localhost:8888/dashboard/index.html</div>`;
+  }
+}
+
+function render(){
+  if(!state||!state.environments)return;
+  renderSidebar();
+  renderEnv(activeIdx);
+}
+
+function renderSidebar(){
+  const list=document.getElementById('env-list');
+  list.innerHTML=state.environments.map((env,i)=>`
+    <div class="env-item ${i===activeIdx?'active':''}" onclick="selectEnv(${i})">
+      <div class="env-dot ${env.overall_severity}"></div>
+      <div class="env-name">${env.name}</div>
+      <div class="env-badge ${env.overall_severity}">${env.incidents.length>0?env.incidents.length:'✓'}</div>
+    </div>`).join('');
+}
+
+function selectEnv(i){
+  activeIdx=i;
+  render();
+}
+
+function renderEnv(i){
+  const env=state.environments[i];
+  if(!env)return;
+  document.getElementById('env-chip').textContent=env.name;
+  const pg=env.postgres;
+  const http=env.http;
+  const win=env.windows||null;
+  const svc=env.services||null;
+  const score=healthScore(env);
+  const scoreClass=score>=90?'ok':score>=60?'warning':'critical';
+  const sevLabel=healthLabel(env);
+
+  const connPct=pg?pg.connection_pct:0;
+  const connClass=barClass(connPct,75,90);
+  const memPct=win?win.memory_used_pct:0;
+  const memClass=barClass(memPct,80,90);
+  const httpLat=http&&http.checks&&http.checks[0]?http.checks[0].latency_ms:0;
+  const httpClass=http?http.overall_severity:'unknown';
+
+  let html=`
+    <div class="main-grid">
+      <div class="health-bar">
+        <div class="health-left">
+          <div>
+            <div class="health-score ${scoreClass}">${score}</div>
+            <div class="health-score-label">health score</div>
+          </div>
+          <div class="health-div"></div>
+          <div class="hstats">
+            <div class="hstat"><div class="hstat-val ${env.incidents.length>0?'critical':'ok'}">${env.incidents.length}</div><div class="hstat-label">incidents</div></div>
+            <div class="hstat"><div class="hstat-val ${connClass} blue">${connPct.toFixed(1)}%</div><div class="hstat-label">pg pool</div></div>
+            <div class="hstat"><div class="hstat-val ${httpClass}">${httpLat?httpLat.toFixed(0)+'ms':'—'}</div><div class="hstat-label">latency</div></div>
+            ${win?`<div class="hstat"><div class="hstat-val ${memClass} blue">${memPct.toFixed(1)}%</div><div class="hstat-label">srv mem</div></div>`:''}
+            ${win?`<div class="hstat"><div class="hstat-val ok">${win.qmatic_total_memory_mb?win.qmatic_total_memory_mb.toFixed(0)+'MB':'—'}</div><div class="hstat-label">qmatic mem</div></div>`:''}
+          </div>
+        </div>
+        <div class="health-right">
+          <div class="env-meta">
+            <div class="env-meta-line">${env.description||env.name}</div>
+            <div class="env-meta-line">polled ${fmtTime(env.polled_at)}</div>
+          </div>
+          <div class="sev-badge ${scoreClass}">${sevLabel}</div>
+        </div>
+      </div>`;
+
+  html+=`<div class="row3">`;
+
+  // PostgreSQL panel
+  html+=`<div class="panel">
+    <div class="panel-hd"><div class="panel-title">postgresql</div><div class="pbadge ${pg?pg.severity:'unknown'}">${pg?(pg.available?'online':'offline'):'no config'}</div></div>`;
+  if(pg){
+    html+=`<div class="mrow"><div class="mkey">connection pool</div><div class="mval ${connClass}">${connPct.toFixed(1)}%</div></div>
+    <div class="bar-track"><div class="bar-fill ${connClass}" style="width:${Math.min(connPct,100)}%"></div></div>
+    <div style="margin-top:8px">
+    <div class="mrow"><div class="mkey">active / max</div><div class="mval blue">${pg.active_connections} / ${pg.max_connections}</div></div>
+    <div class="mrow"><div class="mkey">long queries</div><div class="mval ${pg.long_running_queries>0?'warning':'ok'}">${pg.long_running_queries}</div></div>
+    <div class="mrow"><div class="mkey">blocked queries</div><div class="mval ${pg.blocked_queries>0?'critical':'ok'}">${pg.blocked_queries}</div></div>
+    ${pg.error?`<div class="mrow"><div class="mkey">error</div><div class="mval critical" style="font-size:9px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pg.error}</div></div>`:''}
+    </div>`;
+  }else{html+=`<div class="no-inc">no postgresql configured</div>`;}
+  html+=`</div>`;
+
+  // HTTP panel
+  html+=`<div class="panel">
+    <div class="panel-hd"><div class="panel-title">http / api</div><div class="pbadge ${http?http.overall_severity:'unknown'}">${http?(http.all_reachable?'all ok':'degraded'):'no checks'}</div></div>`;
+  if(http&&http.checks){
+    http.checks.forEach(c=>{
+      const latPct=Math.min((c.latency_ms/3000)*100,100);
+      const latClass=c.severity;
+      html+=`<div class="mrow"><div class="mkey">${c.name}</div><div class="mval ${latClass}">${c.reachable?c.latency_ms.toFixed(0)+'ms':'unreachable'}</div></div>
+      <div class="bar-track"><div class="bar-fill ${latClass}" style="width:${latPct}%"></div></div>`;
+    });
+    html+=`<div style="margin-top:8px">
+    <div class="mrow"><div class="mkey">status</div><div class="mval ${http.overall_severity}">${http.checks[0]?'HTTP '+http.checks[0].status_code:'—'}</div></div>
+    <div class="mrow"><div class="mkey">endpoints</div><div class="mval">${http.checks.length} configured</div></div>
+    <div class="mrow"><div class="mkey">reachable</div><div class="mval ok">${http.checks.filter(c=>c.reachable).length} / ${http.checks.length}</div></div>
+    </div>`;
+  }else{html+=`<div class="no-inc">no http checks configured</div>`;}
+  html+=`</div>`;
+
+  // Windows panel
+  html+=`<div class="panel">
+    <div class="panel-hd"><div class="panel-title">windows / services</div><div class="pbadge ${win?(win.severity||'ok'):'unknown'}">${win?(win.available?'healthy':'error'):'no config'}</div></div>`;
+  if(win&&win.available){
+    html+=`<div class="mrow"><div class="mkey">server memory</div><div class="mval ${memClass}">${memPct.toFixed(1)}%</div></div>
+    <div class="bar-track"><div class="bar-fill ${memClass}" style="width:${Math.min(memPct,100)}%"></div></div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;margin-bottom:8px">${win.used_memory_mb.toFixed(0)} MB used / ${win.total_memory_mb.toFixed(0)} MB total</div>`;
+    if(win.services&&win.services.length>0){
+      win.services.forEach(s=>{
+        const dotClass=s.state==='Running'?'running':'stopped';
+        const stateClass=s.state==='Running'?'running':'stopped';
+        html+=`<div class="svc-row">
+          <div class="svc-dot ${dotClass}"></div>
+          <div class="svc-name">${s.display_name}</div>
+          <div class="svc-state ${stateClass}">${s.state.toLowerCase()}</div>
+          <div class="svc-mem">${s.memory_mb>0?s.memory_mb.toFixed(0)+' MB':'—'}</div>
+        </div>`;
+      });
+    }
+    if(win.missing_services&&win.missing_services.length>0){
+      html+=`<div style="margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--red)">⚠ no JDBC: ${win.missing_services.join(', ')}</div>`;
+    }
+  }else if(win&&!win.available){
+    html+=`<div class="no-inc" style="color:var(--amber)">⚠ WMI collection failed</div>
+    ${win.error?`<div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">${win.error}</div>`:''}`;
+  }else{html+=`<div class="no-inc">no windows config</div>`;}
+  html+=`</div></div>`;
+
+  // Row 2: JDBC connections + Timeline
+  html+=`<div class="row2">`;
+
+  // JDBC per-DB
+  html+=`<div class="panel">
+    <div class="panel-hd"><div class="panel-title">jdbc connections · per database</div><div class="pbadge ${svc?svc.severity:'unknown'}">${svc?'monitoring':'no data'}</div></div>`;
+  if(svc&&svc.connections_by_db&&Object.keys(svc.connections_by_db).length>0){
+    const maxConn=Math.max(...Object.values(svc.connections_by_db));
+    const total=Object.values(svc.connections_by_db).reduce((a,b)=>a+b,0);
+    html+=`<div class="db-grid">`;
+    Object.entries(svc.connections_by_db).sort((a,b)=>b[1]-a[1]).forEach(([db,count])=>{
+      const pct=maxConn>0?(count/maxConn)*100:0;
+      html+=`<div class="db-item">
+        <div class="db-name">${db}</div>
+        <div class="db-conn">${count}</div>
+        <div class="db-conn-label">JDBC connections</div>
+        <div class="bar-track" style="margin-top:4px"><div class="bar-fill blue" style="width:${pct}%"></div></div>
+      </div>`;
+    });
+    html+=`<div class="db-item total">
+      <div class="db-name">total active</div>
+      <div class="db-conn">${total}</div>
+      <div class="db-conn-label">all databases</div>
+    </div></div>`;
+    if(svc.missing_services&&svc.missing_services.length>0){
+      html+=`<div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--amber)">⚠ no JDBC: ${svc.missing_services.join(', ')}</div>`;
+    }
+  }else{html+=`<div class="no-inc">no service data</div>`;}
+  html+=`</div>`;
+
+  // Correlation timeline
+  html+=`<div class="panel">
+    <div class="panel-hd"><div class="panel-title">correlation timeline</div><div class="pbadge ${env.incidents.length>0?'critical':'ok'}">${env.incidents.length>0?env.incidents.length+' active':'clear'}</div></div>
+    <div class="tl-event">
+      <div class="tl-icon ok">✓</div>
+      <div class="tl-body">
+        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
+        <div class="tl-msg">Poll cycle complete — ${env.incidents.length===0?'no incidents':''+env.incidents.length+' incident(s) correlated'}</div>
+        <div class="tl-sub">PG ${connPct.toFixed(1)}% · HTTP ${httpLat?httpLat.toFixed(0)+'ms':'—'} · ${win&&win.services?win.services.filter(s=>s.state==='Running').length+'/'+win.services.length+' services':'—'}</div>
+      </div>
+    </div>
+    <div class="tl-event">
+      <div class="tl-icon purple">⬡</div>
+      <div class="tl-body">
+        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
+        <div class="tl-msg">Correlation engine evaluated — ${env.incidents.length} pattern match(es)</div>
+        <div class="tl-sub">4 rules active · db_saturation · zero_activity · reporting_anomaly · db_unavailable</div>
+      </div>
+    </div>
+    ${win?`<div class="tl-event">
+      <div class="tl-icon info">W</div>
+      <div class="tl-body">
+        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
+        <div class="tl-msg">Windows collector — ${win.available?'WMI auth OK':'WMI failed'}</div>
+        <div class="tl-sub">${win.available?win.services.length+' services discovered · mem='+memPct.toFixed(1)+'%':(win.error||'collection failed')}</div>
+      </div>
+    </div>`:''}
+    ${svc?`<div class="tl-event">
+      <div class="tl-icon blue">J</div>
+      <div class="tl-body">
+        <div class="tl-ts">${fmtTime(env.polled_at)}</div>
+        <div class="tl-msg">JDBC connection map refreshed</div>
+        <div class="tl-sub">${Object.keys(svc.connections_by_db).length} databases · ${Object.values(svc.connections_by_db).reduce((a,b)=>a+b,0)} total connections${svc.missing_services.length>0?' · ⚠ '+svc.missing_services.join(', ')+' silent':''}</div>
+      </div>
+    </div>`:''}
+  </div></div>`;
+
+  // Row 3: RCA + Incidents
+  html+=`<div class="row2">
+    <div class="rca-panel">
+      <div class="rca-hd">
+        <div class="rca-icon">⬡</div>
+        <div class="rca-title">Vorsa operational intelligence</div>
+        <div class="rca-conf">${env.incidents.length===0?'no anomalies':''+env.incidents.length+' correlated'}</div>
+      </div>
+      <div class="rca-body">
+        ${env.incidents.length===0
+          ?`No correlated anomalies in current poll cycle. All signal chains evaluated — PostgreSQL saturation, API latency, JDBC pool state, and service availability. No pattern match against active correlation rules.`
+          :env.incidents.map(inc=>`<strong>${inc.title}</strong> — ${inc.likely_cause}`).join('<br><br>')
+        }
+      </div>
+      <div>
+        ${env.incidents.length===0
+          ?`<div class="rca-action">Review pg_stat_activity if connections exceed 75%</div>
+             <div class="rca-action">Validate API health endpoint URL when available</div>
+             <div class="rca-action">Map statdb schema to enable activity checks</div>
+             <div class="rca-action">Consider alerting integration for critical incidents</div>`
+          :env.incidents.flatMap(inc=>inc.recommended_actions||[]).map(a=>`<div class="rca-action">${a}</div>`).join('')
+        }
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">correlated incidents</div><div class="pbadge ${env.incidents.length>0?env.overall_severity:'ok'}">${env.incidents.length>0?env.incidents.length+' active':'all clear'}</div></div>
+      ${env.incidents.length===0
+        ?`<div class="no-inc"><span style="color:var(--green);font-size:14px">✓</span>No incidents — all systems nominal</div>`
+        :env.incidents.map(inc=>`
+          <div class="inc-card ${inc.severity}">
+            <div class="inc-title">${inc.title}</div>
+            <div class="inc-meta">${inc.incident_type} · ${inc.severity.toUpperCase()} · ${fmtTime(inc.generated_at)}</div>
+            ${(inc.evidence||[]).map(e=>`<div class="inc-ev"><span class="inc-src">${e.source.toUpperCase()}</span>${e.signal}: ${e.value}</div>`).join('')}
+            ${(inc.recommended_actions||[]).slice(0,2).map(a=>`<div class="inc-act">${a}</div>`).join('')}
+          </div>`).join('')
+      }
+    </div>
+  </div>
+
+  </div>`;
+
+  document.getElementById('content').innerHTML=html;
+}
+
+loadState();
+setInterval(loadState,60000);
+</script>
+</body>
+</html>

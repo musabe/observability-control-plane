@@ -1,0 +1,72 @@
+# observability-control-plane / environment configuration
+# Each entry represents one hosted Qmatic environment.
+# Add as many environments as needed. The platform polls all of them.
+
+global:
+  poll_interval_seconds: 60
+  rca_output_dir: incidents/
+  alert_log: logs/alerts.jsonl
+  timezone_default: UTC
+
+environments:
+
+  - name: cxm-test-local
+    type: qmatic
+    enabled: true
+    timezone: America/Toronto
+    description: "CXM Test System - Local (192.168.68.114)"
+
+    business_hours:
+      monday:    ["08:00", "18:00"]
+      tuesday:   ["08:00", "18:00"]
+      wednesday: ["08:00", "18:00"]
+      thursday:  ["08:00", "18:00"]
+      friday:    ["08:00", "18:00"]
+      saturday:  []
+      sunday:    []
+
+    windows:
+      host: 192.168.68.114
+      username: Administrator
+
+    postgres:
+      host: 192.168.68.114
+      port: 5432
+      database: qp_app
+      username: vorsa_readonly
+      connect_timeout_seconds: 5
+      thresholds:
+        connection_pct_warning:  75
+        connection_pct_critical: 90
+        long_query_seconds:      30
+        blocked_query_seconds:   10
+      monitored_databases:
+        - qp_agent
+        - qp_app
+        - qp_calendar
+        - qp_central
+        - statdb
+      monitored_services:
+        - qp_agent
+        - qp_app
+        - qp_calendar
+        - qp_central
+
+    http_checks:
+      - name: qmatic-login
+        url: http://192.168.68.114:8080/login.jsp
+        expected_status: 200
+        warning_latency_ms: 1500
+        critical_latency_ms: 3000
+        timeout_seconds: 10
+
+    activity_checks:
+      min_visits_per_hour_during_business: 0
+      stale_window_minutes: 99999
+      abnormal_drop_pct: 100
+
+    reporting_checks:
+      enabled: false
+      duplicate_visit_threshold: 3
+      carryover_detection: true
+      missing_daily_activity_alert: true
