@@ -1,341 +1,282 @@
 # demo-obs-runner.ps1
 # ============================================================
-# Vorsa Demo — OBS Automated Recording Controller
-# Uses OBS WebSocket to start/stop recording and auto-refresh
-# the browser source — no manual clicks needed.
+# Vorsa Demo — OBS Automated Recording with Narration Sync
 #
-# SETUP (one time):
-#   OBS → Tools → WebSocket Server Settings
-#     ✓ Enable WebSocket server
-#     Port: 4455
-#     ✓ Enable authentication
-#     Password: vorsa-demo
+# Cue points calibrated to generated narration MP3:
+#   01:10 (70s)  — outage transition
+#   03:16 (196s) — recovery transition
+#   04:10 (252s) — end of recording
 #
-#   OBS Scene: "Vorsa-Dashboard"
-#     Source type: Browser
-#     URL:    http://localhost:8888/dashboard/index.html
-#     Width:  1920
-#     Height: 1080
-#     CSS:    body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; zoom: 0.9; }
-#     Source name: "Vorsa-Dashboard" (must match $OBS_SOURCE below)
+# OBS SETUP (one time):
+#   1. Tools > WebSocket Server Settings
+#      Port: 4455, Password: vorsa-demo, Enable: checked
+#
+#   2. Scene: "Vorsa-Dashboard"
+#      Source 1 — Browser:
+#        Name:   Vorsa-Dashboard
+#        URL:    http://localhost:8888/dashboard/index.html
+#        Width:  1920  Height: 1080
+#        CSS:    body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; zoom: 0.9; }
+#      Source 2 — Audio Output Capture:
+#        Name:   Desktop Audio
+#        Device: Default
+#
+#   3. Settings > Audio > Desktop Audio: [your audio device]
 #
 # USAGE:
 #   Terminal 1: python control_plane.py
 #   Terminal 2: python -m http.server 8888
-#   Terminal 3: cd C:\Vorsa\platform\observability-control-plane
-#               .\demo-obs-runner.ps1
+#   Terminal 3: .\demo-obs-runner.ps1
+#            or .\demo-obs-runner.ps1 -NarrationMp3 "C:\path\to\narration.mp3"
 # ============================================================
+
+param(
+    [string]$NarrationMp3 = "$PSScriptRoot\docs\demo\narration.mp3"
+)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 $OBS_HOST     = "localhost"
 $OBS_PORT     = 4455
-$OBS_PASSWORD = "vorsa-demo"          # match OBS WebSocket settings
-$OBS_SCENE    = "Vorsa-Dashboard"     # OBS scene name
-$OBS_SOURCE   = "Vorsa-Dashboard"     # OBS browser source name (inside the scene)
+$OBS_PASSWORD = "vorsa-demo"
+$OBS_SCENE    = "Vorsa-Dashboard"
+$OBS_SOURCE   = "Vorsa-Dashboard"
 
-$BASE         = "C:\Vorsa\platform\observability-control-plane"
+$BASE         = $PSScriptRoot
 $DASHBOARD    = "$BASE\dashboard"
 $SCENARIOS    = "$DASHBOARD\scenarios"
 
-# Timing (seconds) — adjust to match your narration pace
-$T_HEALTHY    = 32    # healthy state display
-$T_AFTER_REF1 = 3     # settle time after outage refresh
-$T_CRITICAL   = 52    # critical state display
-$T_AFTER_REF2 = 3     # settle time after recovery refresh
-$T_RECOVERY   = 26    # recovery state display
-$T_CLOSING    = 8     # closing hold on healthy dashboard
+# Narration cue points — calibrated to your MP3
+$CUE_OUTAGE   = 70     # 01:10 — "The most common and most impactful incident..."
+$CUE_RECOVERY = 156    # 02:36 -- fires 40s before narration reaches recovery
+$CUE_END      = 255    # 04:15 -- end of narration + 3s buffer
 
-# ── OBS WebSocket implementation ──────────────────────────────────────────────
+# ── OBS WebSocket ─────────────────────────────────────────────────────────────
 
 function New-ObsWebSocket {
-    $ws = New-Object System.Net.WebSockets.ClientWebSocket
+    $ws  = New-Object System.Net.WebSockets.ClientWebSocket
     $uri = [System.Uri]"ws://${OBS_HOST}:${OBS_PORT}"
-    $ct  = [System.Threading.CancellationToken]::None
-    $task = $ws.ConnectAsync($uri, $ct)
-    $task.Wait(5000) | Out-Null
-    if ($ws.State -ne "Open") { throw "Could not connect to OBS WebSocket" }
+    $ws.ConnectAsync($uri, [System.Threading.CancellationToken]::None).Wait(5000) | Out-Null
+    if ($ws.State -ne "Open") { throw "Cannot connect to OBS WebSocket on port $OBS_PORT" }
     return $ws
 }
 
-function Send-ObsMessage {
-    param($ws, [hashtable]$msg)
-    $json  = $msg | ConvertTo-Json -Compress -Depth 10
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
-    $seg   = [System.ArraySegment[byte]]::new($bytes)
-    $ws.SendAsync($seg,
-        [System.Net.WebSockets.WebSocketMessageType]::Text,
-        $true,
+function Send-ObsMessage { param($ws, [hashtable]$msg)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes(($msg | ConvertTo-Json -Compress -Depth 10))
+    $ws.SendAsync([System.ArraySegment[byte]]::new($bytes),
+        [System.Net.WebSockets.WebSocketMessageType]::Text, $true,
         [System.Threading.CancellationToken]::None).Wait()
 }
 
-function Receive-ObsMessage {
-    param($ws, [int]$timeoutMs = 8000)
+function Receive-ObsMessage { param($ws, [int]$ms = 8000)
     $buf = [byte[]]::new(65536)
-    $seg = [System.ArraySegment[byte]]::new($buf)
-    $cts = New-Object System.Threading.CancellationTokenSource
-    $cts.CancelAfter($timeoutMs)
-    try {
-        $result = $ws.ReceiveAsync($seg, $cts.Token).Result
-        $json   = [System.Text.Encoding]::UTF8.GetString($buf, 0, $result.Count)
-        return $json | ConvertFrom-Json
-    } catch {
-        throw "OBS WebSocket receive timeout — is OBS still running?"
-    }
+    $cts = New-Object System.Threading.CancellationTokenSource; $cts.CancelAfter($ms)
+    $r   = $ws.ReceiveAsync([System.ArraySegment[byte]]::new($buf), $cts.Token).Result
+    return [System.Text.Encoding]::UTF8.GetString($buf, 0, $r.Count) | ConvertFrom-Json
 }
 
-function Connect-ObsAuth {
-    param($ws, [string]$password)
-
-    # op=0 Hello
-    $hello = Receive-ObsMessage $ws
-    if ($hello.op -ne 0) { throw "Expected Hello (op=0) from OBS, got op=$($hello.op)" }
-
-    $challenge  = $hello.d.authentication.challenge
-    $salt       = $hello.d.authentication.salt
-    $rpcVersion = $hello.d.rpcVersion
-
-    # SHA256( SHA256(password + salt)_base64 + challenge )
+function Connect-ObsAuth { param($ws, [string]$pw)
+    $h   = Receive-ObsMessage $ws
+    if ($h.op -ne 0) { throw "Expected Hello from OBS" }
     $sha = [System.Security.Cryptography.SHA256]::Create()
-
-    $step1bytes = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($password + $salt))
-    $step1b64   = [Convert]::ToBase64String($step1bytes)
-    $step2bytes = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($step1b64 + $challenge))
-    $authString = [Convert]::ToBase64String($step2bytes)
-
-    # op=1 Identify
-    Send-ObsMessage $ws @{
-        op = 1
-        d  = @{
-            rpcVersion         = $rpcVersion
-            authentication     = $authString
-            eventSubscriptions = 0
-        }
-    }
-
-    # op=2 Identified
-    $identified = Receive-ObsMessage $ws
-    if ($identified.op -ne 2) {
-        throw "OBS authentication failed — check password matches OBS WebSocket settings"
-    }
-    return $true
+    $b64 = { param($s) [Convert]::ToBase64String($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($s))) }
+    $auth = & $b64 ((& $b64 ($pw + $h.d.authentication.salt)) + $h.d.authentication.challenge)
+    Send-ObsMessage $ws @{ op=1; d=@{ rpcVersion=$h.d.rpcVersion; authentication=$auth; eventSubscriptions=0 } }
+    $id = Receive-ObsMessage $ws
+    if ($id.op -ne 2) { throw "OBS auth failed — check password matches OBS WebSocket settings" }
 }
 
-function Invoke-ObsRequest {
-    param($ws, [string]$type, [hashtable]$data = @{})
-    $id = [System.Guid]::NewGuid().ToString()
-    Send-ObsMessage $ws @{
-        op = 6
-        d  = @{
-            requestType = $type
-            requestId   = $id
-            requestData = $data
-        }
-    }
+function Invoke-Obs { param($ws, [string]$type, [hashtable]$data=@{})
+    Send-ObsMessage $ws @{ op=6; d=@{ requestType=$type; requestId=[guid]::NewGuid().ToString(); requestData=$data } }
     return Receive-ObsMessage $ws
 }
 
-function Refresh-ObsBrowserSource {
-    param($ws, [string]$sourceName)
-    # Triggers "Refresh cache of current page" inside OBS browser source
-    Invoke-ObsRequest $ws "PressInputPropertiesButton" @{
-        inputName    = $sourceName
+function Refresh-Browser { param($ws)
+    Invoke-Obs $ws "PressInputPropertiesButton" @{
+        inputName    = $OBS_SOURCE
         propertyName = "refreshnocache"
     } | Out-Null
     Start-Sleep -Milliseconds 1200
 }
 
-# ── UI helpers ────────────────────────────────────────────────────────────────
+# ── Audio ─────────────────────────────────────────────────────────────────────
 
-function Write-Header {
-    param([string]$msg, [string]$color = "Cyan")
-    $ts = Get-Date -Format "HH:mm:ss"
-    Write-Host ""
-    Write-Host "  [$ts] $msg" -ForegroundColor $color
+function Start-NarrationAudio { param([string]$path)
+    Add-Type -AssemblyName presentationCore
+    $script:player = New-Object System.Windows.Media.MediaPlayer
+    $script:player.Open([System.Uri]::new($path))
+    $script:player.Play()
+    $script:audioStart = Get-Date
 }
 
-function Write-Info {
-    param([string]$msg)
-    Write-Host "          $msg" -ForegroundColor Gray
+function Get-AudioElapsed {
+    return ((Get-Date) - $script:audioStart).TotalSeconds
 }
 
-function Wait-Countdown {
-    param([int]$seconds, [string]$label)
-    $total = $seconds
-    for ($i = $seconds; $i -gt 0; $i--) {
-        $done = $total - $i
-        $pct  = [Math]::Floor($done / $total * 30)
-        $bar  = ("$([char]9608)" * $pct).PadRight(30, "$([char]9617)")
-        Write-Host "`r  [$bar] ${i}s — $label  " -NoNewline -ForegroundColor Yellow
-        Start-Sleep -Seconds 1
+function Wait-UntilCue { param([double]$cue, [string]$label)
+    while ((Get-AudioElapsed) -lt $cue) {
+        $elapsed   = Get-AudioElapsed
+        $remaining = [Math]::Max(0, $cue - $elapsed)
+        $pct       = [Math]::Min(30, [Math]::Floor($elapsed / $cue * 30))
+        $bar       = ("$([char]9608)" * $pct).PadRight(30, "$([char]9617)")
+        $elapsed_fmt   = "{0:mm\:ss}" -f [timespan]::fromseconds($elapsed)
+        $remaining_fmt = "{0:mm\:ss}" -f [timespan]::fromseconds($remaining)
+        Write-Host "`r  [$bar] $elapsed_fmt elapsed — ${remaining_fmt} until $label  " -NoNewline -ForegroundColor Yellow
+        Start-Sleep -Milliseconds 250
     }
     $full = "$([char]9608)" * 30
-    Write-Host "`r  [$full] done — $label  " -ForegroundColor Green
+    Write-Host "`r  [$full] CUE: $label                                    " -ForegroundColor Green
+}
+
+# ── UI ────────────────────────────────────────────────────────────────────────
+
+function Write-Step { param([string]$msg, [string]$c = "Cyan")
+    Write-Host "`n  [$(Get-Date -Format 'HH:mm:ss')] $msg" -ForegroundColor $c
+}
+
+function Write-Info { param([string]$msg)
+    Write-Host "          $msg" -ForegroundColor Gray
 }
 
 # ── Preflight ─────────────────────────────────────────────────────────────────
 
 Clear-Host
 Write-Host ""
-Write-Host "  +===================================================+" -ForegroundColor Cyan
-Write-Host "  |   Vorsa -- OBS Automated Demo Recording          |" -ForegroundColor Cyan
-Write-Host "  |   northvale-council / PostgreSQL Outage Scenario |" -ForegroundColor Cyan
-Write-Host "  +===================================================+" -ForegroundColor Cyan
+Write-Host "  +=====================================================+" -ForegroundColor Cyan
+Write-Host "  |   Vorsa -- OBS Demo Recording with Narration Sync  |" -ForegroundColor Cyan
+Write-Host "  |   Total runtime: ~4m 12s                           |" -ForegroundColor Cyan
+Write-Host "  +=====================================================+" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Cue points:" -ForegroundColor White
+Write-Host "    01:10 (70s)  -- Outage state loaded" -ForegroundColor Gray
+Write-Host "    03:00 (180s) -- Recovery poll triggered" -ForegroundColor Gray
+Write-Host "    04:15 (255s) -- Recording stops" -ForegroundColor Gray
 Write-Host ""
 
-# Verify scenario files exist
-if (-not (Test-Path "$SCENARIOS\postgres-outage-state.json")) {
-    Write-Host "  ERROR: Missing $SCENARIOS\postgres-outage-state.json" -ForegroundColor Red
-    Write-Host "  Run the scenario setup first." -ForegroundColor Gray
+# Check MP3
+if (-not (Test-Path $NarrationMp3)) {
+    Write-Host "  ERROR: Narration MP3 not found:" -ForegroundColor Red
+    Write-Host "    $NarrationMp3" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Save your ElevenLabs MP3 to:" -ForegroundColor Gray
+    Write-Host "    $PSScriptRoot\docs\demo\narration.mp3" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Or specify the path:" -ForegroundColor Gray
+    Write-Host "    .\demo-obs-runner.ps1 -NarrationMp3 'C:\path\to\narration.mp3'" -ForegroundColor Yellow
     exit 1
 }
 
+Write-Host "  MP3 found: $NarrationMp3" -ForegroundColor Green
+Write-Host ""
 Write-Host "  Pre-flight checklist:" -ForegroundColor White
 Write-Host "    [ ] OBS open -- scene '$OBS_SCENE' selected" -ForegroundColor Gray
 Write-Host "    [ ] OBS WebSocket: port $OBS_PORT, password '$OBS_PASSWORD'" -ForegroundColor Gray
-Write-Host "    [ ] Browser source URL: http://localhost:8888/dashboard/index.html" -ForegroundColor Gray
-Write-Host "    [ ] Browser source name in OBS: '$OBS_SOURCE'" -ForegroundColor Gray
-Write-Host "    [ ] Dashboard showing HEALTHY (health >= 95, all green)" -ForegroundColor Gray
-Write-Host "    [ ] python control_plane.py running in Terminal 1" -ForegroundColor Gray
-Write-Host "    [ ] python -m http.server 8888 running in Terminal 2" -ForegroundColor Gray
+Write-Host "    [ ] OBS source '$OBS_SOURCE' is a Browser source" -ForegroundColor Gray
+Write-Host "    [ ] OBS Desktop Audio capture enabled" -ForegroundColor Gray
+Write-Host "    [ ] Dashboard showing HEALTHY (health >= 95)" -ForegroundColor Gray
+Write-Host "    [ ] python control_plane.py running (Terminal 1)" -ForegroundColor Gray
+Write-Host "    [ ] python -m http.server 8888 running (Terminal 2)" -ForegroundColor Gray
+Write-Host "    [ ] System volume audible (OBS will capture it)" -ForegroundColor Gray
 Write-Host ""
-Read-Host "  Press ENTER when all checks are complete"
+Read-Host "  Press ENTER to begin"
 
-# ── Connect to OBS ────────────────────────────────────────────────────────────
+# ── Connect OBS ───────────────────────────────────────────────────────────────
 
-Write-Header "Connecting to OBS WebSocket on port $OBS_PORT..." "Yellow"
+Write-Step "Connecting to OBS..." "Yellow"
 try {
     $ws = New-ObsWebSocket
-    Connect-ObsAuth $ws $OBS_PASSWORD | Out-Null
+    Connect-ObsAuth $ws $OBS_PASSWORD
     Write-Host "  Connected and authenticated." -ForegroundColor Green
 } catch {
-    Write-Host ""
     Write-Host "  ERROR: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "  Fix checklist:" -ForegroundColor White
-    Write-Host "    - OBS is running" -ForegroundColor Gray
-    Write-Host "    - Tools > WebSocket Server Settings > Enable WebSocket server" -ForegroundColor Gray
-    Write-Host "    - Port: $OBS_PORT" -ForegroundColor Gray
-    Write-Host "    - Password: $OBS_PASSWORD" -ForegroundColor Gray
+    Write-Host "  Check OBS is running with WebSocket enabled on port $OBS_PORT." -ForegroundColor Gray
     exit 1
 }
 
-# Switch to demo scene
-Invoke-ObsRequest $ws "SetCurrentProgramScene" @{ sceneName = $OBS_SCENE } | Out-Null
+Invoke-Obs $ws "SetCurrentProgramScene" @{ sceneName=$OBS_SCENE } | Out-Null
 Write-Host "  Scene set: '$OBS_SCENE'" -ForegroundColor Green
 
-# ── Start recording ───────────────────────────────────────────────────────────
+# ── Start OBS recording ───────────────────────────────────────────────────────
 
-Write-Header "Starting OBS recording..." "Yellow"
-Invoke-ObsRequest $ws "StartRecord" | Out-Null
-Start-Sleep -Seconds 2
-Write-Host "  Recording started." -ForegroundColor Green
-
-$totalSecs = $T_HEALTHY + $T_AFTER_REF1 + $T_CRITICAL + $T_AFTER_REF2 + $T_RECOVERY + $T_CLOSING
-Write-Host ""
-Write-Host "  Demo sequence:" -ForegroundColor DarkCyan
-Write-Host "    Phase 1 - Healthy state      $T_HEALTHY s" -ForegroundColor DarkCyan
-Write-Host "    Phase 2 - Outage scenario    $T_CRITICAL s" -ForegroundColor DarkCyan
-Write-Host "    Phase 3 - Recovery           $T_RECOVERY s" -ForegroundColor DarkCyan
-Write-Host "    Total approx:                $totalSecs s (~$([Math]::Ceiling($totalSecs/60))m $(($totalSecs % 60))s)" -ForegroundColor DarkCyan
-
-# ── PHASE 1: HEALTHY STATE ────────────────────────────────────────────────────
-
-Write-Header "PHASE 1 -- HEALTHY STATE" "Green"
-Write-Info "Move mouse slowly across:"
-Write-Info "  health bar > JDBC grid > service topology > correlation timeline"
-Write-Host ""
-
-Wait-Countdown $T_HEALTHY "Healthy state"
-
-# ── LOAD OUTAGE SCENARIO ──────────────────────────────────────────────────────
-
-Write-Header "Loading PostgreSQL outage scenario..." "Yellow"
-Copy-Item "$SCENARIOS\postgres-outage-state.json" "$DASHBOARD\state.json" -Force
-Write-Info "state.json updated -- refreshing OBS browser source..."
-Refresh-ObsBrowserSource $ws $OBS_SOURCE
-Write-Host "  Browser source refreshed." -ForegroundColor Green
-
-Wait-Countdown $T_AFTER_REF1 "Dashboard settling"
-
-# ── PHASE 2: CRITICAL STATE ───────────────────────────────────────────────────
-
-Write-Header "PHASE 2 -- CRITICAL STATE" "Red"
-Write-Info "Move mouse across:"
-Write-Info "  health=12 CRITICAL > PG offline > HTTP timeout"
-Write-Info "  services stopped > JDBC all zeros > topology red nodes"
-Write-Info "  2 incident cards with confidence badges (91% / 88%)"
-Write-Host ""
-
-Wait-Countdown $T_CRITICAL "Critical state"
-
-# ── RECOVERY POLL ─────────────────────────────────────────────────────────────
-
-Write-Header "Running live recovery poll..." "Yellow"
-Push-Location $BASE
-$pollOutput = python control_plane.py --once 2>&1
-Pop-Location
-
-$healthLine = $pollOutput | Where-Object { $_ -match "\[northvale-council\] Health:" } | Select-Object -Last 1
-if ($healthLine) {
-    Write-Host "  $($healthLine.ToString().Trim())" -ForegroundColor Green
-} else {
-    Write-Host "  Poll complete." -ForegroundColor Green
-}
-
-Write-Info "Refreshing OBS browser source..."
-Refresh-ObsBrowserSource $ws $OBS_SOURCE
-Write-Host "  Browser source refreshed." -ForegroundColor Green
-
-Wait-Countdown $T_AFTER_REF2 "Dashboard settling"
-
-# ── PHASE 3: RECOVERY ────────────────────────────────────────────────────────
-
-Write-Header "PHASE 3 -- RECOVERY" "Green"
-Write-Info "Move mouse across:"
-Write-Info "  health climbing to 97-100 > 0 incidents > JDBC restored > all topology green"
-Write-Host ""
-
-Wait-Countdown $T_RECOVERY "Recovery state"
-
-# ── CLOSING SHOT ─────────────────────────────────────────────────────────────
-
-Write-Header "CLOSING SHOT -- hold on healthy dashboard" "Cyan"
-Wait-Countdown $T_CLOSING "Closing"
-
-# ── STOP RECORDING ───────────────────────────────────────────────────────────
-
-Write-Header "Stopping OBS recording..." "Yellow"
-$stopResult = Invoke-ObsRequest $ws "StopRecord"
+Write-Step "Starting OBS recording..." "Yellow"
+Invoke-Obs $ws "StartRecord" | Out-Null
 Start-Sleep -Seconds 1
 
-$ws.CloseAsync(
-    [System.Net.WebSockets.WebSocketCloseStatus]::NormalClosure,
-    "Done",
-    [System.Threading.CancellationToken]::None
-).Wait()
+# ── Start narration audio ─────────────────────────────────────────────────────
 
-# ── Done ──────────────────────────────────────────────────────────────────────
+Write-Step "Starting narration..." "Yellow"
+Start-NarrationAudio (Resolve-Path $NarrationMp3).Path
+Write-Host "  Audio playing -- OBS capturing screen + audio together." -ForegroundColor Green
+
+# ── PHASE 1: HEALTHY (0:00 - 1:10) ───────────────────────────────────────────
 
 Write-Host ""
-Write-Host "  +===================================================+" -ForegroundColor Green
-Write-Host "  |   Recording complete.                             |" -ForegroundColor Green
-Write-Host "  +===================================================+" -ForegroundColor Green
+Write-Step "PHASE 1 -- HEALTHY STATE  (0:00 - 1:10)" "Green"
+Write-Info "Move mouse: health bar > JDBC grid > topology > correlation timeline"
 Write-Host ""
 
-$outputFile = $stopResult.d.responseData.outputPath
-if ($outputFile) {
-    Write-Host "  Saved to: $outputFile" -ForegroundColor Cyan
+Wait-UntilCue $CUE_OUTAGE "outage transition at 01:10"
+
+# ── LOAD OUTAGE (1:10) ────────────────────────────────────────────────────────
+
+Write-Step "Loading outage scenario..." "Red"
+Copy-Item "$SCENARIOS\postgres-outage-state.json" "$DASHBOARD\state.json" -Force
+Refresh-Browser $ws
+Write-Host "  Dashboard: CRITICAL state loaded." -ForegroundColor Red
+
+# ── PHASE 2: CRITICAL (1:10 - 3:16) ──────────────────────────────────────────
+
+Write-Step "PHASE 2 -- CRITICAL STATE  (1:10 - 3:00)" "Red"
+Write-Info "Move mouse: health=12 > PG offline > HTTP timeout"
+Write-Info "           > services stopped > JDBC all zeros"
+Write-Info "           > topology red nodes > 2 incident cards"
+Write-Host ""
+
+Wait-UntilCue $CUE_RECOVERY "recovery transition at 03:00"
+
+# ── RECOVERY (3:16) ───────────────────────────────────────────────────────────
+
+Write-Step "Running recovery poll..." "Yellow"
+Push-Location $BASE
+$pollOut = python control_plane.py --once 2>&1
+Pop-Location
+
+$hl = $pollOut | Where-Object { $_ -match "Health:" } | Select-Object -Last 1
+if ($hl) { Write-Host "  $($hl.ToString().Trim())" -ForegroundColor Green }
+else { Write-Host "  Poll complete." -ForegroundColor Green }
+
+Refresh-Browser $ws
+Write-Host "  Dashboard: HEALTHY state restored." -ForegroundColor Green
+
+# ── PHASE 3: RECOVERY (3:16 - 4:10) ─────────────────────────────────────────
+
+Write-Step "PHASE 3 -- RECOVERY  (3:16 - 4:15)" "Green"
+Write-Info "Move mouse: health climbing > 0 incidents > JDBC restored > all green"
+Write-Host ""
+
+Wait-UntilCue $CUE_END "end of recording at 04:15"
+
+# ── STOP ──────────────────────────────────────────────────────────────────────
+
+$script:player.Stop()
+Write-Step "Stopping OBS recording..." "Yellow"
+$stop = Invoke-Obs $ws "StopRecord"
+Start-Sleep -Seconds 1
+$ws.CloseAsync([System.Net.WebSockets.WebSocketCloseStatus]::NormalClosure, "",
+    [System.Threading.CancellationToken]::None).Wait()
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
+Write-Host ""
+Write-Host "  +=====================================================+" -ForegroundColor Green
+Write-Host "  |   Recording complete.                              |" -ForegroundColor Green
+Write-Host "  |   Screen + narration captured in one take.        |" -ForegroundColor Green
+Write-Host "  +=====================================================+" -ForegroundColor Green
+Write-Host ""
+
+$outFile = $stop.d.responseData.outputPath
+if ($outFile) {
+    Write-Host "  Saved to: $outFile" -ForegroundColor Cyan
 } else {
-    Write-Host "  Check OBS output folder for recording." -ForegroundColor Gray
-    Write-Host "  Default: C:\Users\$env:USERNAME\Videos\" -ForegroundColor Gray
+    Write-Host "  Check OBS output folder: C:\Users\$env:USERNAME\Videos\" -ForegroundColor Gray
 }
-
-Write-Host ""
-Write-Host "  Next steps:" -ForegroundColor White
-Write-Host "    1. ElevenLabs > Text to Speech > paste narration-script.txt > download MP3" -ForegroundColor Gray
-Write-Host "    2. ElevenLabs Studio > Add voiceover > upload recording + MP3" -ForegroundColor Gray
-Write-Host "    3. Align audio using pause markers as sync points" -ForegroundColor Gray
-Write-Host "    4. Export MP4" -ForegroundColor Gray
-Write-Host ""
-Write-Host "  Narration: docs\demo\narration-script.txt" -ForegroundColor Gray
 Write-Host ""

@@ -406,37 +406,50 @@ The Vorsa service topology reflects the real Qmatic Orchestra architecture,
 rendered as a live dependency graph in the dashboard.
 
 ```
-Internet / Mobile · HTTPS
-        │
-        ▼
-Qmatic API Gateway          ← External request front door
-        │  Internal REST
-        ▼
-Orchestra Central (Platform) ← Core orchestration engine
-   ┌────┼────┐
-   ▼    ▼    ▼
-Web   Counter  Kiosk         ← Client-facing modules
-Booking Apps  Systems
-        │  JDBC
-        ▼
-PostgreSQL                   ← Bundled database layer
-   ┌────┼────┐
-   ▼    ▼    ▼
-qp_central statdb qp_agent   ← Operational databases
-        │  ETL
-        ▼
-Reporting / BI               ← Analytics and KPI layer
+┌─────────────────────────┐
+│     Client Channels     │
+│  Web · Mobile · Kiosk   │
+└────────────┬────────────┘
+             │
+  ┌──────────▼──────────┐
+  │     API Gateway     │
+  │  Auth · Routing     │
+  │  REST Services      │
+  └──────────┬──────────┘
+             │
+    ┌─────────┼─────────┐
+    │         │         │
+┌───▼────┐ ┌──▼──────┐ ┌▼────────┐
+│Orchestra│ │Appoint- │ │Messaging│
+│  Core  │ │ment Eng │ │ Engine  │
+│Queue · │ │Booking ·│ │SMS ·    │
+│Workflow│ │Calendar │ │Email    │
+└───┬────┘ └──┬──────┘ └┬────────┘
+    │         │          │
+    └────┬────┘          │
+         │               │
+┌────────▼────────┐ ┌────▼──────────┐
+│  Operational DB │ │ Statistics DB │
+│  qp_central     │ │ statdb        │
+│  qp_agent       │ │               │
+└────────┬────────┘ └──────┬────────┘
+         │                  │ ETL
+  ┌──────┼──────┐           │
+  ▼      ▼      ▼    ┌──────▼──────────┐
+Kiosks Counter Disp  │ BI / Historical │
+       App    lays   │ Reports         │
+                     └─────────────────┘
 ```
 
 ### Database role mapping
 
 | Database | Role | Primary consumers |
 |---|---|---|
-| qp_central | Core operational data | Platform, Web Booking, Counter |
-| statdb | Statistics + event history | Platform → Reporting/BI |
-| qp_agent | Agent and user mappings | Counter apps, Platform |
-| qp_calendar | Appointment scheduling | Web Booking, Platform |
-| qp_app | System configuration | Platform (startup) |
+| qp_central | Core operational data | Orchestra Core, Appointment Engine |
+| statdb | Statistics + event history | All engines → BI / Historical Reports |
+| qp_agent | Agent and user mappings | Orchestra Core, Counter App |
+| qp_calendar | Appointment scheduling | Appointment Engine |
+| qp_app | System configuration | All engines (startup) |
 
 ### Topology during incidents
 

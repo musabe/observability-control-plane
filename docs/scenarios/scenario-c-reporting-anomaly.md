@@ -103,38 +103,27 @@ Nightly statdb reset did not complete (07:00 UTC)
 ## Topology Impact
 
 ```
-Internet / Mobile · HTTPS
+Client Channels
         │  [normal]
         ▼
-  API Gateway ✓  ← Running, healthy
+  API Gateway ✓
         │
         ▼
-Orchestra Central ✓  ← Running, healthy
-   ┌────┼────┐
-   ▼    ▼    ▼
-Web   Counter  Kiosk
-Book✓  Apps✓  Systems✓  ← All healthy
+  Orchestra Core ✓
+  Appointment Eng ✓
+  Messaging Eng ✓
         │
         ▼
- PostgreSQL ✓  ← Running, 2.8% pool
-   ┌────┼────┐
-   ▼    ▼    ▼
-qp_central✓ statdb⚠  qp_agent✓
-17 JDBC     16 JDBC   9 JDBC
-            ↑
-            data quality issue
-        │
-        ▼
-Reporting / BI ⚠  ← Receiving corrupted data
+  Operational DB ✓    Statistics DB ⚠  ← data quality issue
+  qp_central: 17      statdb: 16
+  qp_agent: 9         847 carryover visits
+                      23 duplicate IDs
+        │                   │ ETL
+  Kiosks ✓  Counter ✓       ▼
+  Displays ✓           BI / Reports ⚠  ← receiving bad data
 ```
+`⚠` = data quality issue  `✓` = healthy
 
-`⚠` = data quality issue  `✓` = healthy  
-
-**Note:** No infrastructure nodes are degraded. The anomaly is entirely within
-the data layer — statdb contains incorrect records that are being fed downstream
-to the BI layer.
-
----
 
 ## Dashboard State
 

@@ -115,37 +115,25 @@ API Gateway, Orchestra Central, or the Web Booking front-end.
 ## Topology Impact
 
 ```
-Internet / Mobile · HTTPS
-        │  [latency: 2847ms ↑↑]
+Client Channels
+        │  [latency: 2847ms ↑]
         ▼
   API Gateway ◑  ← Running but slow
         │  [request processing delay]
         ▼
-Orchestra Central ◑  ← Running, application thread pressure
-   ┌────┼────┐
-   ▼    ▼    ▼
-Web   Counter  Kiosk
-Book◑  Apps○  Systems○
-[slow]        [unaffected]
+  Orchestra Core ◑  ← JVM GC pressure (heap 80%)
+  Appointment Eng ○
+  Messaging Eng ○
         │
         ▼
- PostgreSQL ✓  ← Healthy — 3.1% pool
-   ┌────┼────┐
-   ▼    ▼    ▼
-qp_central✓ statdb✓ qp_agent✓
-17 JDBC    16 JDBC  9 JDBC
+  Operational DB ✓    Statistics DB ✓
+  qp_central: 17      statdb: 16
+  (normal baseline)   (normal baseline)
         │
-        ▼
-Reporting / BI ✓  ← Unaffected
+  Kiosks ○  Counter ○  Displays ○    BI / Reports ✓
 ```
-
 `◑` = degraded  `○` = healthy, minor impact  `✓` = fully healthy
 
-**Key difference from Scenario A/B:** Only the top of the stack is affected.
-Database and service layers are completely healthy. The issue is isolated to
-the HTTP/application tier.
-
----
 
 ## Dashboard State
 

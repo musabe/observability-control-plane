@@ -147,34 +147,25 @@ Appointment processing peak — high object allocation rate
 
 ## Topology Impact
 
-### Phase 1 (Warning)
 ```
-API Gateway ○ → Orchestra Central ◑ → PostgreSQL ✓
-                    ↑ JVM 89% heap
-```
-
-### Phase 3 (Crash)
-```
-Internet / Mobile · HTTPS
-        │  [timeout]
+Client Channels
+        │  [latency: 892ms ↑]
         ▼
-  API Gateway ●  STOPPED
+  API Gateway ◑  ← GC pauses causing latency
         │
         ▼
-Orchestra Central ●  OOM CRASH
-   ┌────┼────┐
-   ▼    ▼    ▼
-Web●  Counter● Kiosk●
-        │  [all JDBC → 0]
+  Orchestra Core ◑  ← JVM heap 89% — WARNING
+  Appointment Eng ○
+  Messaging Eng ○
+        │
         ▼
- PostgreSQL ◑  running but no connections
-   ┌────┼────┐
-   ▼    ▼    ▼
-qp_central● statdb● qp_agent●
-0 JDBC     0 JDBC   0 JDBC
+  Operational DB ✓    Statistics DB ✓
+  (normal)            (normal)
+        │
+  Kiosks ○  Counter ○  Displays ○    BI / Reports ✓
 ```
+`◑` = degraded  `○` = running, impacted  `✓` = healthy
 
----
 
 ## RCA Summary
 

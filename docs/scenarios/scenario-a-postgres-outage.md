@@ -95,31 +95,26 @@ PostgreSQL connection refused
 ## Topology Impact
 
 ```
-Internet / Mobile · HTTPS
-        │
+Client Channels
+        │  [timeout]
         ▼
   API Gateway ●  ← STOPPED
         │
         ▼
-Orchestra Central ○  ← Running (orphaned — no DB)
-   ┌────┼────┐
-   ▼    ▼    ▼
-Web   Counter  Kiosk
-Book● Apps○   Systems○
+  Orchestra Core ●  ← OOM / cascade
+  Appointment Eng ●
+  Messaging Eng ●
         │
         ▼
- PostgreSQL ●  ← UNREACHABLE
-   ┌────┼────┐
-   ▼    ▼    ▼
-qp_central● statdb● qp_agent●  ← ALL 0 JDBC
+  Operational DB ●  ← UNREACHABLE    Statistics DB ●
+  qp_central: 0 JDBC                 statdb: 0 JDBC
+  qp_agent:   0 JDBC
         │
-        ▼
-Reporting / BI ●  ← NO DATA
+  ┌─────┼─────┐
+Kiosks● Ctr● Disp●                  BI / Reports ●
 ```
+`●` = failed / unavailable
 
-`●` = failed/degraded  `○` = running but impacted
-
----
 
 ## Dashboard State
 

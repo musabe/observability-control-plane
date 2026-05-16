@@ -108,32 +108,25 @@ statdb statistics pipeline — long-running queries (18s+)
 ## Topology Impact
 
 ```
-Internet / Mobile · HTTPS
-        │  [latency: 1847ms ↑]
+Client Channels
+        │  [latency elevated]
         ▼
-  API Gateway ○  ← Running but slow
-        │  [request queue building]
+  API Gateway ◑  ← Running but slow
+        │
         ▼
-Orchestra Central ○  ← Running, struggling
-   ┌────┼────┐
-   ▼    ▼    ▼
-Web   Counter  Kiosk
-Book○  Apps○  Systems○  ← All running, all slow
-        │  [JDBC contention]
+  Orchestra Core ◑    ← DB pressure
+  Appointment Eng ◑
+  Messaging Eng ○
+        │
         ▼
- PostgreSQL ◑  ← Running, 82% pool
-   ┌────┼────┐
-   ▼    ▼    ▼
-qp_central◑ statdb◑ qp_agent○
-42 JDBC    38 JDBC   24 JDBC
-        │  [long-running queries]
-        ▼
-Reporting / BI ◑  ← Slow write ingestion
+  Operational DB ◑    Statistics DB ◑
+  qp_central: 42      statdb: 38
+  (2.5× baseline)     (2.4× baseline)
+        │
+  Kiosks ○  Counter ○  Displays ○    BI / Reports ◑
 ```
+`◑` = degraded  `○` = running, impacted
 
-`◑` = degraded/pressured  `○` = running, impacted  
-
----
 
 ## Dashboard State
 
