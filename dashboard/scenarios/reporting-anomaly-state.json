@@ -1,0 +1,124 @@
+{
+  "schema_version": "2.0",
+  "polled_at": "2026-05-16T08:05:14+00:00",
+  "environments": [
+    {
+      "name": "northvale-council",
+      "description": "Northvale Council \u2014 Citizen Services (192.168.68.114)",
+      "polled_at": "2026-05-16T08:05:14+00:00",
+      "overall_severity": "warning",
+      "health_score": 72,
+      "health_label": "DEGRADED",
+      "postgres": {
+        "available": true,
+        "severity": "ok",
+        "connection_pct": 2.8,
+        "active_connections": 46,
+        "max_connections": 1660,
+        "long_running_queries": 0,
+        "blocked_queries": 0,
+        "error": null
+      },
+      "http": {
+        "available": true,
+        "overall_severity": "ok",
+        "all_reachable": true,
+        "checks": [
+          {
+            "name": "qmatic-login",
+            "url": "http://192.168.68.114:8080/login.jsp",
+            "reachable": true,
+            "latency_ms": 228,
+            "status_code": 200,
+            "severity": "ok",
+            "error": null
+          }
+        ]
+      },
+      "windows": {
+        "available": true,
+        "severity": "ok",
+        "memory_severity": "ok",
+        "total_memory_mb": 12287.0,
+        "free_memory_mb": 5283.0,
+        "used_memory_mb": 7004.0,
+        "memory_used_pct": 57.5,
+        "qmatic_total_memory_mb": 3890.0,
+        "jvm_heap_max_mb": 4096.0,
+        "jvm_heap_source": "config",
+        "missing_services": [],
+        "services": [
+          {
+            "name": "QmaticWebBooking",
+            "display_name": "Qmatic Web Booking",
+            "state": "Running",
+            "memory_mb": 284.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 7.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP",
+            "display_name": "Qmatic Platform",
+            "state": "Running",
+            "memory_mb": 3268.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 79.8,
+            "heap_severity": "warning"
+          },
+          {
+            "name": "QP_API_GW",
+            "display_name": "Qmatic API Gateway",
+            "state": "Running",
+            "memory_mb": 338.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 8.0,
+            "heap_severity": "ok"
+          }
+        ],
+        "error": null
+      },
+      "services": {
+        "available": true,
+        "severity": "ok",
+        "connections_by_db": {
+          "qp_central": 17,
+          "statdb": 16,
+          "qp_agent": 9,
+          "qp_calendar": 2,
+          "qp_app": 1
+        },
+        "missing_services": []
+      },
+      "incidents": [
+        {
+          "incident_type": "reporting_anomaly_with_db_pressure",
+          "title": "Reporting anomaly \u2014 duplicate visits and carryover totals detected",
+          "severity": "warning",
+          "confidence": 68,
+          "suppressed": false,
+          "generated_at": "2026-05-16T08:05:14+00:00",
+          "correlated_at": "2026-05-16T08:05:14+00:00",
+          "likely_cause": "The Qmatic nightly statistics reset did not complete at 07:00 UTC. 847 visit records from the previous business day are persisting in statdb, and 23 visit IDs are duplicated at the day boundary. Infrastructure is fully healthy — this is a data quality incident at the application layer.",
+          "evidence": [
+            {"source": "reporting", "signal": "duplicate_visit_ids", "value": "23 duplicates detected", "severity": "warning"},
+            {"source": "reporting", "signal": "carryover_visits", "value": "847 visits from 2026-05-15", "severity": "warning"},
+            {"source": "reporting", "signal": "statdb_reset_status", "value": "reset not confirmed", "severity": "warning"},
+            {"source": "postgres", "signal": "statdb_jdbc", "value": "16 connections (normal)", "severity": "ok"},
+            {"source": "activity", "signal": "business_hours", "value": "active", "severity": "info"}
+          ],
+          "recommended_actions": [
+            "Verify nightly statdb reset job completed — check Windows Task Scheduler",
+            "Review statdb for duplicate visit_id records using pg_stat_activity",
+            "Contact Qmatic administrator to execute manual statdb reset",
+            "Notify BI/reporting team — dashboard KPIs are overstated by ~40%",
+            "Re-run all reports generated between 07:00 and resolution time",
+            "Enable reporting_checks in environments.yaml for earlier detection"
+          ],
+          "rca_file": "incidents/INC-2026-0516-003-reporting-anomaly.md"
+        }
+      ],
+      "suppressed_warnings": []
+    }
+  ]
+}

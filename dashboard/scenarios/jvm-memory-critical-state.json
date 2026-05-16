@@ -1,0 +1,144 @@
+{
+  "schema_version": "2.0",
+  "polled_at": "2026-05-16T15:47:22+00:00",
+  "environments": [
+    {
+      "name": "northvale-council",
+      "description": "Northvale Council \u2014 Citizen Services (192.168.68.114)",
+      "polled_at": "2026-05-16T15:47:22+00:00",
+      "overall_severity": "critical",
+      "health_score": 18,
+      "health_label": "CRITICAL",
+      "postgres": {
+        "available": false,
+        "severity": "critical",
+        "connection_pct": 0.0,
+        "active_connections": 0,
+        "max_connections": 1660,
+        "long_running_queries": 0,
+        "blocked_queries": 0,
+        "error": "connection to server at \"192.168.68.114\", port 5432 failed: connection refused"
+      },
+      "http": {
+        "available": true,
+        "overall_severity": "critical",
+        "all_reachable": false,
+        "checks": [
+          {
+            "name": "qmatic-login",
+            "url": "http://192.168.68.114:8080/login.jsp",
+            "reachable": false,
+            "latency_ms": 0,
+            "status_code": 0,
+            "severity": "critical",
+            "error": "timeout"
+          }
+        ]
+      },
+      "windows": {
+        "available": true,
+        "severity": "critical",
+        "memory_severity": "ok",
+        "total_memory_mb": 12287.0,
+        "free_memory_mb": 7840.0,
+        "used_memory_mb": 4447.0,
+        "memory_used_pct": 36.2,
+        "qmatic_total_memory_mb": 338.0,
+        "jvm_heap_max_mb": 4096.0,
+        "jvm_heap_source": "config",
+        "missing_services": ["Qmatic Web Booking", "Qmatic Platform"],
+        "services": [
+          {
+            "name": "QmaticWebBooking",
+            "display_name": "Qmatic Web Booking",
+            "state": "Stopped",
+            "memory_mb": 0.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 0.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP",
+            "display_name": "Qmatic Platform",
+            "state": "Stopped",
+            "memory_mb": 0.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 0.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP_API_GW",
+            "display_name": "Qmatic API Gateway",
+            "state": "Running",
+            "memory_mb": 338.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 8.0,
+            "heap_severity": "ok"
+          }
+        ],
+        "error": null
+      },
+      "services": {
+        "available": false,
+        "severity": "critical",
+        "connections_by_db": {
+          "qp_central": 0,
+          "statdb": 0,
+          "qp_agent": 0,
+          "qp_calendar": 0,
+          "qp_app": 0
+        },
+        "missing_services": ["qp_central", "statdb", "qp_agent", "qp_calendar", "qp_app"]
+      },
+      "incidents": [
+        {
+          "incident_type": "db_unavailable",
+          "title": "PostgreSQL database unavailable",
+          "severity": "critical",
+          "confidence": 91,
+          "suppressed": false,
+          "generated_at": "2026-05-16T15:47:22+00:00",
+          "correlated_at": "2026-05-16T15:47:22+00:00",
+          "likely_cause": "PostgreSQL JDBC connections collapsed following Qmatic Platform OOM crash. Platform JVM was at 97% heap before crash. All 5 databases dropped to 0 connections simultaneously.",
+          "evidence": [
+            {"source": "postgres", "signal": "availability", "value": "UNREACHABLE", "severity": "critical"},
+            {"source": "postgres", "signal": "error", "value": "connection refused", "severity": "critical"},
+            {"source": "http", "signal": "app_reachable", "value": "false", "severity": "critical"}
+          ],
+          "recommended_actions": [
+            "Restart Qmatic Platform service (JVM cleared on restart)",
+            "Web Booking and API Gateway should auto-recover after Platform is up",
+            "Review C:/qmatic/logs/ for OutOfMemoryError heap dump",
+            "Check Windows Event Log for Java crash details",
+            "After recovery: increase -Xmx from 4096m to 6144m to prevent recurrence"
+          ],
+          "rca_file": "incidents/INC-2026-0516-005-jvm-memory-pressure.md"
+        },
+        {
+          "incident_type": "qmatic_service_stopped",
+          "title": "Qmatic service crash \u2014 Platform OOM \u2014 Web Booking cascade",
+          "severity": "critical",
+          "confidence": 88,
+          "suppressed": false,
+          "generated_at": "2026-05-16T15:47:22+00:00",
+          "correlated_at": "2026-05-16T15:47:22+00:00",
+          "likely_cause": "Qmatic Platform stopped due to Java OutOfMemoryError after heap climbed from 89% (15:21 UTC, WARNING issued) to 97% (15:35 UTC, CRITICAL issued). Web Booking stopped as cascade. WARNING was issued 26 minutes before crash.",
+          "evidence": [
+            {"source": "windows", "signal": "stopped_services", "value": "Platform (OOM), Web Booking (cascade)", "severity": "critical"},
+            {"source": "windows", "signal": "running_services", "value": "1/3 (API Gateway only)", "severity": "warning"},
+            {"source": "windows", "signal": "prior_heap_peak", "value": "97% at 15:35 UTC", "severity": "critical"},
+            {"source": "services", "signal": "missing_jdbc", "value": "all 5 databases", "severity": "critical"}
+          ],
+          "recommended_actions": [
+            "Restart Qmatic Platform — fresh JVM will clear heap",
+            "Check C:/qmatic/logs/ for heapdump.hprof (if configured)",
+            "Add -XX:+ExitOnOutOfMemoryError to enable auto-restart via Service Recovery",
+            "Incident was predictable — WARNING issued 26 minutes before crash"
+          ],
+          "rca_file": "incidents/INC-2026-0516-005-jvm-memory-pressure.md"
+        }
+      ],
+      "suppressed_warnings": []
+    }
+  ]
+}

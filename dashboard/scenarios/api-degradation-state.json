@@ -1,0 +1,133 @@
+{
+  "schema_version": "2.0",
+  "polled_at": "2026-05-16T14:22:11+00:00",
+  "environments": [
+    {
+      "name": "northvale-council",
+      "description": "Northvale Council \u2014 Citizen Services (192.168.68.114)",
+      "polled_at": "2026-05-16T14:22:11+00:00",
+      "overall_severity": "warning",
+      "health_score": 75,
+      "health_label": "DEGRADED",
+      "postgres": {
+        "available": true,
+        "severity": "ok",
+        "connection_pct": 3.1,
+        "active_connections": 51,
+        "max_connections": 1660,
+        "long_running_queries": 0,
+        "blocked_queries": 0,
+        "error": null
+      },
+      "http": {
+        "available": true,
+        "overall_severity": "warning",
+        "all_reachable": true,
+        "checks": [
+          {
+            "name": "qmatic-login",
+            "url": "http://192.168.68.114:8080/login.jsp",
+            "reachable": true,
+            "latency_ms": 2847,
+            "status_code": 200,
+            "severity": "warning",
+            "error": null
+          }
+        ]
+      },
+      "windows": {
+        "available": true,
+        "severity": "ok",
+        "memory_severity": "ok",
+        "total_memory_mb": 12287.0,
+        "free_memory_mb": 5283.0,
+        "used_memory_mb": 7004.0,
+        "memory_used_pct": 57.5,
+        "qmatic_total_memory_mb": 3890.0,
+        "jvm_heap_max_mb": 4096.0,
+        "jvm_heap_source": "config",
+        "missing_services": [],
+        "services": [
+          {
+            "name": "QmaticWebBooking",
+            "display_name": "Qmatic Web Booking",
+            "state": "Running",
+            "memory_mb": 284.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 7.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP",
+            "display_name": "Qmatic Platform",
+            "state": "Running",
+            "memory_mb": 3268.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 79.8,
+            "heap_severity": "warning"
+          },
+          {
+            "name": "QP_API_GW",
+            "display_name": "Qmatic API Gateway",
+            "state": "Running",
+            "memory_mb": 338.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 8.0,
+            "heap_severity": "ok"
+          }
+        ],
+        "error": null
+      },
+      "services": {
+        "available": true,
+        "severity": "ok",
+        "connections_by_db": {
+          "qp_central": 17,
+          "statdb": 16,
+          "qp_agent": 9,
+          "qp_calendar": 2,
+          "qp_app": 1
+        },
+        "missing_services": []
+      },
+      "incidents": [
+        {
+          "incident_type": "app_layer_issue",
+          "title": "API latency elevated \u2014 infrastructure healthy",
+          "severity": "warning",
+          "confidence": 75,
+          "suppressed": false,
+          "generated_at": "2026-05-16T14:22:11+00:00",
+          "correlated_at": "2026-05-16T14:22:11+00:00",
+          "likely_cause": "HTTP latency elevated to 2847ms (12.5\u00d7 baseline) while all infrastructure signals remain healthy. PostgreSQL at 3.1%, all services running, 0 long queries, 0 blocked queries. Degradation isolated to application-layer processing. Most likely cause: JVM GC pressure in Qmatic Platform (heap=80%).",
+          "evidence": [
+            {"source": "http", "signal": "api_latency_ms", "value": "2847ms (warn: 1500ms)", "severity": "warning"},
+            {"source": "http", "signal": "latency_vs_threshold", "value": "190% of warning threshold", "severity": "warning"},
+            {"source": "postgres", "signal": "availability", "value": "OK — 3.1% pool", "severity": "ok"},
+            {"source": "windows", "signal": "services_running", "value": "3/3", "severity": "ok"},
+            {"source": "services", "signal": "total_jdbc", "value": "45 (normal baseline)", "severity": "ok"},
+            {"source": "windows", "signal": "platform_heap", "value": "3268MB / 4096MB (80%)", "severity": "warning"}
+          ],
+          "recommended_actions": [
+            "Restart Qmatic Platform service to clear GC pressure",
+            "Review Platform JVM logs for GC pause frequency",
+            "Check active thread count via JMX or Task Manager",
+            "Validate no external integrations are timing out",
+            "Consider reducing jvm_heap_warning_pct to 75% in environments.yaml"
+          ],
+          "rca_file": "incidents/INC-2026-0516-004-api-degradation.md"
+        }
+      ],
+      "suppressed_warnings": [
+        {
+          "incident_type": "app_layer_issue",
+          "title": "API latency intermittently elevated",
+          "severity": "warning",
+          "confidence": 48,
+          "suppressed": true,
+          "correlated_at": "2026-05-16T13:58:00+00:00"
+        }
+      ]
+    }
+  ]
+}

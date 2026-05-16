@@ -196,9 +196,14 @@ class QmaticPostgresChecks:
                 r["datname"]: int(r["jdbc_connections"]) for r in rows
             }
             monitored = getattr(self.cfg, "monitored_databases", [])
+            # Always check all monitored DBs — even if not in results (0 connections)
             for db in monitored:
                 if result.connections_by_db.get(db, 0) == 0:
                     result.missing_services.append(db)
+            # Also add any monitored DB not appearing in results at all
+            for db in monitored:
+                if db not in result.connections_by_db:
+                    result.connections_by_db[db] = 0
             if result.missing_services:
                 result.severity = "critical"
         except Exception as exc:

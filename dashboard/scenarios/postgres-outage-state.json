@@ -1,0 +1,143 @@
+{
+  "schema_version": "2.0",
+  "polled_at": "2026-05-14T08:45:04+00:00",
+  "environments": [
+    {
+      "name": "northvale-council",
+      "description": "Northvale Council \u2014 Citizen Services (192.168.68.114)",
+      "polled_at": "2026-05-14T08:45:04+00:00",
+      "overall_severity": "critical",
+      "health_score": 12,
+      "health_label": "CRITICAL",
+      "postgres": {
+        "available": false,
+        "severity": "critical",
+        "connection_pct": 0.0,
+        "active_connections": 0,
+        "max_connections": 1660,
+        "long_running_queries": 0,
+        "blocked_queries": 0,
+        "error": "connection to server at \"192.168.68.114\", port 5432 failed: connection refused"
+      },
+      "http": {
+        "available": true,
+        "overall_severity": "critical",
+        "all_reachable": false,
+        "checks": [
+          {
+            "name": "qmatic-login",
+            "url": "http://192.168.68.114:8080/login.jsp",
+            "reachable": false,
+            "latency_ms": 0,
+            "status_code": 0,
+            "severity": "critical",
+            "error": "timeout"
+          }
+        ]
+      },
+      "windows": {
+        "available": true,
+        "severity": "critical",
+        "memory_severity": "ok",
+        "total_memory_mb": 12287.0,
+        "free_memory_mb": 4621.0,
+        "used_memory_mb": 7666.0,
+        "memory_used_pct": 62.4,
+        "qmatic_total_memory_mb": 3268.0,
+        "jvm_heap_max_mb": 4096.0,
+        "jvm_heap_source": "config",
+        "missing_services": ["Qmatic Web Booking", "Qmatic API Gateway"],
+        "services": [
+          {
+            "name": "QmaticWebBooking",
+            "display_name": "Qmatic Web Booking",
+            "state": "Stopped",
+            "memory_mb": 0.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 0.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP",
+            "display_name": "Qmatic Platform",
+            "state": "Running",
+            "memory_mb": 3268.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 79.8,
+            "heap_severity": "warning"
+          },
+          {
+            "name": "QP_API_GW",
+            "display_name": "Qmatic API Gateway",
+            "state": "Stopped",
+            "memory_mb": 0.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 0.0,
+            "heap_severity": "ok"
+          }
+        ],
+        "error": null
+      },
+      "services": {
+        "available": false,
+        "severity": "critical",
+        "connections_by_db": {
+          "qp_central": 0,
+          "statdb": 0,
+          "qp_agent": 0,
+          "qp_calendar": 0,
+          "qp_app": 0
+        },
+        "missing_services": ["qp_central", "statdb", "qp_agent", "qp_calendar", "qp_app"]
+      },
+      "incidents": [
+        {
+          "incident_type": "db_unavailable",
+          "title": "PostgreSQL database unavailable",
+          "severity": "critical",
+          "confidence": 91,
+          "suppressed": false,
+          "generated_at": "2026-05-14T08:45:04+00:00",
+          "correlated_at": "2026-05-14T08:45:04+00:00",
+          "likely_cause": "PostgreSQL is not responding to connection requests. All Qmatic operations will fail until connectivity is restored. Check Windows Event Log for crash or OOM details.",
+          "evidence": [
+            {"source": "postgres", "signal": "availability", "value": "UNREACHABLE", "severity": "critical"},
+            {"source": "postgres", "signal": "error", "value": "connection refused", "severity": "critical"},
+            {"source": "http", "signal": "app_reachable", "value": "false", "severity": "critical"}
+          ],
+          "recommended_actions": [
+            "Verify PostgreSQL service is running on the database host",
+            "Check network connectivity between application and database",
+            "Review PostgreSQL logs for crash or OOM events",
+            "Check disk space on the database server",
+            "Configure Windows Service Recovery for auto-restart"
+          ],
+          "rca_file": "incidents/INC-2026-0514-001-db-unavailable.md"
+        },
+        {
+          "incident_type": "qmatic_service_stopped",
+          "title": "Qmatic service stopped \u2014 Web Booking, API Gateway",
+          "severity": "critical",
+          "confidence": 88,
+          "suppressed": false,
+          "generated_at": "2026-05-14T08:45:04+00:00",
+          "correlated_at": "2026-05-14T08:45:04+00:00",
+          "likely_cause": "2 Qmatic services are not running. This will impact customers using the affected modules. Check Windows Event Log for crash details or manual stop.",
+          "evidence": [
+            {"source": "windows", "signal": "stopped_services", "value": "Web Booking, API Gateway", "severity": "critical"},
+            {"source": "windows", "signal": "running_services", "value": "1/3", "severity": "warning"},
+            {"source": "services", "signal": "missing_jdbc", "value": "qp_central, statdb, qp_agent, qp_calendar, qp_app", "severity": "critical"}
+          ],
+          "recommended_actions": [
+            "Check Windows Event Log for Web Booking stop/crash reason",
+            "Review Qmatic application logs for Java exceptions or OOM errors",
+            "Verify disk space and available system memory",
+            "Attempt service restart if safe: Services \u2192 right-click \u2192 Start"
+          ],
+          "rca_file": "incidents/INC-2026-0514-001-db-unavailable.md"
+        }
+      ],
+      "suppressed_warnings": []
+    }
+  ]
+}

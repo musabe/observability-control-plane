@@ -538,6 +538,66 @@ def rule_app_layer_issue(env, pg_snap, http_snap, activity_result,
     )
 
 
+@correlation_rule
+def rule_qmatic_service_stopped(env, pg_snap, http_snap, activity_result,
+                                reporting_result, win_snap, svc_snap):
+    """
+    One or more Qmatic Windows services are stopped.
+    Fires regardless of JDBC state — service down is always an incident.
+    """
+    if win_snap is None:
+        return None
+
+    services = win_snap.get("services", []) if isinstance(win_snap, dict) else []
+    stopped = [s for s in services if s.get("state") != "Running"]
+
+    if not stopped:
+        return None
+
+    stopped_names = [s.get("display_name", s.get("name", "unknown")) for s in stopped]
+
+    evidence = [
+        Evidence("windows", "stopped_services",
+                 ", ".join(stopped_names), "critical"),
+        Evidence("windows", "running_services",
+                 f"{len(services)-len(stopped)}/{len(services)}", "warning"),
+    ]
+
+    # Add JDBC evidence if available
+    if isinstance(svc_snap, dict) and svc_snap.get("missing_services"):
+        evidence.append(Evidence("services", "missing_jdbc",
+                                 ", ".join(svc_snap["missing_services"]), "critical"))
+
+    confidence = calculate_confidence(
+        "qmatic_service_stopped", evidence, env.name,
+        pg_snap=pg_snap, http_snap=http_snap,
+        is_business_hours=_is_biz_hours(env),
+    )
+
+    return CorrelatedIncident(
+        environment=env.name,
+        incident_type="qmatic_service_stopped",
+        title=f"Qmatic service stopped — {', '.join(stopped_names)}",
+        severity=adjust_severity("critical", confidence),
+        correlated_at=datetime.now(timezone.utc),
+        confidence=confidence,
+        suppressed=should_suppress(confidence),
+        evidence=evidence,
+        likely_cause=(
+            f"{len(stopped)} Qmatic service(s) are not running. "
+            "This will impact customers using the affected modules. "
+            "Check Windows Event Log for crash details or manual stop."
+        ),
+        recommended_actions=[
+            f"Check Windows Event Log for {stopped_names[0]} stop/crash reason",
+            "Review Qmatic application logs for Java exceptions or OOM errors",
+            "Verify disk space and available system memory",
+            "Attempt service restart if safe: Services → right-click → Start",
+            "Check if this was a planned maintenance stop",
+        ],
+    )
+
+
 # ── Engine ────────────────────────────────────────────────────────────────────
 
 class CorrelationEngine:

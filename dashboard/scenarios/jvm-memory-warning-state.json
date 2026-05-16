@@ -1,0 +1,122 @@
+{
+  "schema_version": "2.0",
+  "polled_at": "2026-05-16T15:21:03+00:00",
+  "environments": [
+    {
+      "name": "northvale-council",
+      "description": "Northvale Council \u2014 Citizen Services (192.168.68.114)",
+      "polled_at": "2026-05-16T15:21:03+00:00",
+      "overall_severity": "warning",
+      "health_score": 82,
+      "health_label": "DEGRADED",
+      "postgres": {
+        "available": true,
+        "severity": "ok",
+        "connection_pct": 4.2,
+        "active_connections": 69,
+        "max_connections": 1660,
+        "long_running_queries": 0,
+        "blocked_queries": 0,
+        "error": null
+      },
+      "http": {
+        "available": true,
+        "overall_severity": "ok",
+        "all_reachable": true,
+        "checks": [
+          {
+            "name": "qmatic-login",
+            "url": "http://192.168.68.114:8080/login.jsp",
+            "reachable": true,
+            "latency_ms": 892,
+            "status_code": 200,
+            "severity": "ok",
+            "error": null
+          }
+        ]
+      },
+      "windows": {
+        "available": true,
+        "severity": "warning",
+        "memory_severity": "ok",
+        "total_memory_mb": 12287.0,
+        "free_memory_mb": 5283.0,
+        "used_memory_mb": 7004.0,
+        "memory_used_pct": 57.5,
+        "qmatic_total_memory_mb": 4267.0,
+        "jvm_heap_max_mb": 4096.0,
+        "jvm_heap_source": "config",
+        "missing_services": [],
+        "services": [
+          {
+            "name": "QmaticWebBooking",
+            "display_name": "Qmatic Web Booking",
+            "state": "Running",
+            "memory_mb": 284.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 7.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP",
+            "display_name": "Qmatic Platform",
+            "state": "Running",
+            "memory_mb": 3645.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 89.0,
+            "heap_severity": "critical"
+          },
+          {
+            "name": "QP_API_GW",
+            "display_name": "Qmatic API Gateway",
+            "state": "Running",
+            "memory_mb": 338.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 8.0,
+            "heap_severity": "ok"
+          }
+        ],
+        "error": null
+      },
+      "services": {
+        "available": true,
+        "severity": "ok",
+        "connections_by_db": {
+          "qp_central": 19,
+          "statdb": 18,
+          "qp_agent": 11,
+          "qp_calendar": 3,
+          "qp_app": 2
+        },
+        "missing_services": []
+      },
+      "incidents": [
+        {
+          "incident_type": "memory_pressure_api_cascade",
+          "title": "JVM memory pressure \u2014 Platform heap at 89% \u2014 API latency elevating",
+          "severity": "warning",
+          "confidence": 71,
+          "suppressed": false,
+          "generated_at": "2026-05-16T15:21:03+00:00",
+          "correlated_at": "2026-05-16T15:21:03+00:00",
+          "likely_cause": "Qmatic Platform JVM heap at 89% (3645MB / 4096MB). GC pressure is causing stop-the-world pauses, elevating API latency to 892ms. Heap is trending upward — OOM risk if not addressed. Recommend Platform service restart or heap increase.",
+          "evidence": [
+            {"source": "windows", "signal": "platform_heap_pct", "value": "89.0% (threshold: 80%)", "severity": "critical"},
+            {"source": "windows", "signal": "platform_heap_mb", "value": "3645MB / 4096MB", "severity": "critical"},
+            {"source": "http", "signal": "api_latency_ms", "value": "892ms (GC pause correlation)", "severity": "ok"},
+            {"source": "postgres", "signal": "connection_pct", "value": "4.2% (normal)", "severity": "ok"}
+          ],
+          "recommended_actions": [
+            "IMMEDIATE: Restart Qmatic Platform service during next low-traffic window",
+            "Monitor heap trend across next 2-3 poll cycles",
+            "If heap exceeds 95% — restart immediately regardless of traffic",
+            "Add -XX:+HeapDumpOnOutOfMemoryError to JAVA_OPTS for post-mortem analysis",
+            "Consider increasing -Xmx from 4096m to 6144m (server has capacity)"
+          ],
+          "rca_file": "incidents/INC-2026-0516-005-jvm-memory-pressure.md"
+        }
+      ],
+      "suppressed_warnings": []
+    }
+  ]
+}

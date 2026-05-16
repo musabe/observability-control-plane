@@ -141,6 +141,8 @@ def poll_environment(env, correlator: CorrelationEngine, rca: RCAGenerator) -> d
                 "qmatic_total_memory_mb": win_snap.qmatic_total_memory_mb,
                 "jvm_heap_max_mb": win_snap.jvm_heap_max_mb,
                 "jvm_heap_source": win_snap.jvm_heap_source,
+                "missing_services": [s.display_name for s in win_snap.services if s.state != "Running"],
+                "missing_services": [s.display_name for s in win_snap.services if s.state != "Running"],
                 "services": [
                     {
                         "name": s.name,

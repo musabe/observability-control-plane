@@ -1,0 +1,133 @@
+{
+  "schema_version": "2.0",
+  "polled_at": "2026-05-15T09:38:22+00:00",
+  "environments": [
+    {
+      "name": "northvale-council",
+      "description": "Northvale Council \u2014 Citizen Services (192.168.68.114)",
+      "polled_at": "2026-05-15T09:38:22+00:00",
+      "overall_severity": "warning",
+      "health_score": 58,
+      "health_label": "DEGRADED",
+      "postgres": {
+        "available": true,
+        "severity": "warning",
+        "connection_pct": 82.0,
+        "active_connections": 1361,
+        "max_connections": 1660,
+        "long_running_queries": 11,
+        "blocked_queries": 17,
+        "error": null
+      },
+      "http": {
+        "available": true,
+        "overall_severity": "warning",
+        "all_reachable": true,
+        "checks": [
+          {
+            "name": "qmatic-login",
+            "url": "http://192.168.68.114:8080/login.jsp",
+            "reachable": true,
+            "latency_ms": 1847,
+            "status_code": 200,
+            "severity": "warning",
+            "error": null
+          }
+        ]
+      },
+      "windows": {
+        "available": true,
+        "severity": "warning",
+        "memory_severity": "warning",
+        "total_memory_mb": 12287.0,
+        "free_memory_mb": 2686.0,
+        "used_memory_mb": 9601.0,
+        "memory_used_pct": 78.2,
+        "qmatic_total_memory_mb": 4530.0,
+        "jvm_heap_max_mb": 4096.0,
+        "jvm_heap_source": "config",
+        "missing_services": [],
+        "services": [
+          {
+            "name": "QmaticWebBooking",
+            "display_name": "Qmatic Web Booking",
+            "state": "Running",
+            "memory_mb": 282.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 7.0,
+            "heap_severity": "ok"
+          },
+          {
+            "name": "QP",
+            "display_name": "Qmatic Platform",
+            "state": "Running",
+            "memory_mb": 3910.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 95.4,
+            "heap_severity": "critical"
+          },
+          {
+            "name": "QP_API_GW",
+            "display_name": "Qmatic API Gateway",
+            "state": "Running",
+            "memory_mb": 338.0,
+            "xmx_mb": 4096.0,
+            "heap_used_pct": 8.0,
+            "heap_severity": "ok"
+          }
+        ],
+        "error": null
+      },
+      "services": {
+        "available": true,
+        "severity": "ok",
+        "connections_by_db": {
+          "qp_central": 42,
+          "statdb": 38,
+          "qp_agent": 24,
+          "qp_calendar": 18,
+          "qp_app": 12
+        },
+        "missing_services": []
+      },
+      "incidents": [
+        {
+          "incident_type": "db_saturation_api_cascade",
+          "title": "Database saturation causing API latency degradation",
+          "severity": "warning",
+          "confidence": 73,
+          "suppressed": false,
+          "generated_at": "2026-05-15T09:38:22+00:00",
+          "correlated_at": "2026-05-15T09:38:22+00:00",
+          "likely_cause": "PostgreSQL connection pool at 82% with 11 long-running queries and 17 blocked queries. Statistics pipeline write load is contending with operational traffic, elevating API latency to 1847ms.",
+          "evidence": [
+            {"source": "postgres", "signal": "connection_pool_pct", "value": "82.0%", "severity": "warning"},
+            {"source": "postgres", "signal": "long_running_queries", "value": "11 queries (worst: 142s)", "severity": "warning"},
+            {"source": "postgres", "signal": "blocked_queries", "value": "17", "severity": "warning"},
+            {"source": "http", "signal": "api_latency_ms", "value": "1847ms", "severity": "warning"},
+            {"source": "services", "signal": "qp_central_jdbc", "value": "42 connections (2.5\u00d7 baseline)", "severity": "warning"},
+            {"source": "services", "signal": "statdb_jdbc", "value": "38 connections (2.4\u00d7 baseline)", "severity": "warning"}
+          ],
+          "recommended_actions": [
+            "Review pg_stat_activity for blocking queries — terminate long-running statdb queries",
+            "Check application connection pool configuration",
+            "Identify long-running reporting or statistics jobs",
+            "Consider setting statement_timeout for reporting role",
+            "Review Platform JVM heap — currently at 95% (3910MB/4096MB)"
+          ],
+          "rca_file": "incidents/INC-2026-0515-002-jdbc-saturation.md"
+        }
+      ],
+      "suppressed_warnings": [
+        {
+          "incident_type": "db_saturation_api_cascade",
+          "title": "Database connection pressure building",
+          "severity": "warning",
+          "confidence": 51,
+          "suppressed": true,
+          "correlated_at": "2026-05-15T09:31:00+00:00"
+        }
+      ]
+    }
+  ]
+}
