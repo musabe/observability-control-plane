@@ -1,0 +1,65 @@
+This is Vorsa — an operational intelligence platform built specifically for hosted Qmatic Orchestra environments.
+
+You're looking at the northvale-council environment. A live Qmatic deployment serving citizen services.
+
+Health score: 97. PostgreSQL connection pool at 2.8 percent. HTTP responding at 228 milliseconds. Three Qmatic services running. 45 JDBC connections across five databases. Everything nominal.
+
+The service topology below reflects the real Qmatic Orchestra architecture — Internet clients through the API Gateway, down through Orchestra Central, to Web Booking, Counter, and Kiosk modules, through JDBC to PostgreSQL, and into the reporting layer.
+
+Every node is green.
+
+[PAUSE 2 SECONDS]
+
+Now I'm going to simulate a PostgreSQL service failure — the most common and most impactful incident in a Qmatic deployment.
+
+[PAUSE 3 SECONDS]
+
+The platform has detected a complete infrastructure failure.
+
+Health score has dropped from 97 to 12 — Critical.
+
+PostgreSQL: offline. HTTP: timeout. Two Qmatic services stopped. All five databases showing zero JDBC connections simultaneously.
+
+That pattern — all databases dropping to zero at the same moment — is the signature of a database-layer failure, not an application issue.
+
+[PAUSE 2 SECONDS]
+
+The correlation engine has evaluated all nine rules and matched two patterns.
+
+First: db unavailable. PostgreSQL is not responding. Confidence: 91 percent. Five independent critical signals, all correlated in a single 60-second poll cycle.
+
+Second: qmatic service stopped. Web Booking and API Gateway crashed as a cascade from losing the database layer. Confidence: 88 percent.
+
+Two rules. Two named incidents. One root cause.
+
+[PAUSE 2 SECONDS]
+
+Each incident comes with a generated RCA artifact — evidence surfaced directly in the dashboard, and specific remediation steps provided automatically.
+
+Verify PostgreSQL is running. Check network connectivity. Review logs for crash or out-of-memory events. Configure Windows Service Recovery for auto-restart.
+
+The on-call engineer does not need to diagnose from scratch. The platform has already done the correlation work.
+
+[PAUSE 2 SECONDS]
+
+The service topology shows exactly where the failure propagated.
+
+API Gateway — stopped. Orchestra Central — stopped. Web Booking — stopped. PostgreSQL running but accepting no connections. Every database node at zero.
+
+The dependency chain is visible.
+
+[PAUSE 3 SECONDS]
+
+PostgreSQL service has been restarted. The platform tracks the recovery automatically.
+
+Health score climbing. JDBC connections re-establishing across all five databases. Services back online.
+
+Back to 100 — Healthy. Zero incidents.
+
+The full incident lifecycle — detection, correlation, RCA generation, and recovery — tracked automatically, within one 60-second poll cycle.
+
+[PAUSE 2 SECONDS]
+
+Vorsa is not a generic monitoring dashboard. It understands Qmatic — the database schema, the service dependencies, the JDBC connection patterns, and the business context.
+
+It detects infrastructure failures, application-layer degradation, and data quality anomalies that no generic tool can surface.
