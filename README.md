@@ -15,6 +15,26 @@ summaries with confidence scoring and actionable remediation steps.
 
 ---
 
+
+## Demo
+
+[![Vorsa Demo — PostgreSQL Outage Scenario](docs/screenshots/architecture.png)](https://youtu.be/o7M6RgoimOk)
+
+> PostgreSQL outage scenario — detection, correlation, RCA generation, and recovery tracked automatically within a single 60-second poll cycle.
+
+**[▶ Watch on YouTube](https://youtu.be/o7M6RgoimOk)**
+
+| Timestamp | Event |
+|---|---|
+| 00:00 | Healthy environment — baseline telemetry |
+| 01:27 | PostgreSQL service failure introduced |
+| 01:30 | Platform detects CRITICAL state — health 97 → 12 |
+| 01:35 | Correlation engine — 2 patterns matched (conf 91% / 88%) |
+| 01:45 | Service topology shows full dependency cascade |
+| 03:49 | PostgreSQL restarted — platform tracks recovery |
+| 04:10 | Full recovery — health 100 HEALTHY — 0 incidents |
+
+---
 ## What it does
 
 - **Detects** PostgreSQL connection pressure, long-running queries, blocked locks
