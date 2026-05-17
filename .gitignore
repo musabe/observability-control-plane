@@ -42,3 +42,11 @@ dashboard/state.json
 dashboard/incident_history.jsonl
 **/__pycache__/
 *.pyc
+
+demo-obs-runner.ps1
+
+docs/demo/recordings/
+
+docs/demo/narration.mp3
+
+docs/demo/narration-script.txt

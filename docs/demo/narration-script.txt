@@ -10,10 +10,10 @@ Three Qmatic services running.
 Everything nominal.
 ...
 The service topology reflects the real Qmatic Orchestra architecture.
-Client requests — web, mobile, and kiosk — flow through the API Gateway.
-The gateway routes to three core engines: Orchestra Core for queue and workflow management, the Appointment Engine for booking and calendar, and the Messaging Engine for notifications.
-All three engines connect to the Operational Database — qp_central and qp_agent — and the Statistics Database — statdb.
-The statistics database feeds the BI and historical reporting layer via ETL.
+Web Booking and Mobile clients connect through the API Gateway — which handles authentication, rate limiting, and routing.
+Kiosk systems and Counter applications connect directly to Orchestra Central using Orchestra's own authentication — they bypass the API Gateway entirely.
+Orchestra Central manages queue logic, workflow, appointments, and messaging.
+It connects to two database layers: the Operational Database — qp_central, qp_agent, and qp_calendar — and the Statistics Database — statdb — which feeds the BI and historical reporting layer.
 Every node is green.
 ...
 Now I'm going to simulate a PostgreSQL service failure.
@@ -38,7 +38,7 @@ Confidence: 91 percent.
 Five independent critical signals correlated in a single 60-second poll cycle.
 Second:
 Qmatic service stopped.
-The engines cascaded as a result of losing the database layer.
+The API Gateway and Web Booking crashed as a cascade from losing the database layer.
 Confidence: 88 percent.
 Two rules.
 Two named incidents.
@@ -56,9 +56,11 @@ The platform has already completed the correlation work.
 ...
 The service topology shows exactly where the failure propagated.
 API Gateway: stopped.
-All three engines: stopped or degraded.
+Orchestra Central: degraded.
+Web Booking: stopped.
 Both databases: zero JDBC connections.
-The dependency chain is visible.
+Kiosk and Counter systems — which connect directly to Orchestra — are also impacted.
+The full dependency chain is visible.
 ...
 PostgreSQL service has now been restarted.
 The platform tracks recovery automatically.

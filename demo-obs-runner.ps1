@@ -46,9 +46,9 @@ $DASHBOARD    = "$BASE\dashboard"
 $SCENARIOS    = "$DASHBOARD\scenarios"
 
 # Narration cue points — calibrated to your MP3
-$CUE_OUTAGE   = 70     # 01:10 — "The most common and most impactful incident..."
-$CUE_RECOVERY = 156    # 02:36 -- fires 40s before narration reaches recovery
-$CUE_END      = 255    # 04:15 -- end of narration + 3s buffer
+$CUE_OUTAGE   = 87     # 01:27 — outage transition
+$CUE_RECOVERY = 209    # 03:29 — fires 20s early to allow poll completion
+$CUE_END      = 290    # 04:50 — end of narration + 2s buffer
 
 # ── OBS WebSocket ─────────────────────────────────────────────────────────────
 
@@ -143,13 +143,13 @@ Clear-Host
 Write-Host ""
 Write-Host "  +=====================================================+" -ForegroundColor Cyan
 Write-Host "  |   Vorsa -- OBS Demo Recording with Narration Sync  |" -ForegroundColor Cyan
-Write-Host "  |   Total runtime: ~4m 12s                           |" -ForegroundColor Cyan
+Write-Host "  |   Total runtime: ~4m 50s                           |" -ForegroundColor Cyan
 Write-Host "  +=====================================================+" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Cue points:" -ForegroundColor White
-Write-Host "    01:10 (70s)  -- Outage state loaded" -ForegroundColor Gray
-Write-Host "    03:00 (180s) -- Recovery poll triggered" -ForegroundColor Gray
-Write-Host "    04:15 (255s) -- Recording stops" -ForegroundColor Gray
+Write-Host "    01:27 (87s)  -- Outage state loaded" -ForegroundColor Gray
+Write-Host "    03:29 (209s) -- Recovery poll triggered" -ForegroundColor Gray
+Write-Host "    04:50 (290s) -- Recording stops" -ForegroundColor Gray
 Write-Host ""
 
 # Check MP3
@@ -210,11 +210,11 @@ Write-Host "  Audio playing -- OBS capturing screen + audio together." -Foregrou
 # ── PHASE 1: HEALTHY (0:00 - 1:10) ───────────────────────────────────────────
 
 Write-Host ""
-Write-Step "PHASE 1 -- HEALTHY STATE  (0:00 - 1:10)" "Green"
+Write-Step "PHASE 1 -- HEALTHY STATE  (0:00 - 1:27)" "Green"
 Write-Info "Move mouse: health bar > JDBC grid > topology > correlation timeline"
 Write-Host ""
 
-Wait-UntilCue $CUE_OUTAGE "outage transition at 01:10"
+Wait-UntilCue $CUE_OUTAGE "outage transition at 01:27"
 
 # ── LOAD OUTAGE (1:10) ────────────────────────────────────────────────────────
 
@@ -225,13 +225,13 @@ Write-Host "  Dashboard: CRITICAL state loaded." -ForegroundColor Red
 
 # ── PHASE 2: CRITICAL (1:10 - 3:16) ──────────────────────────────────────────
 
-Write-Step "PHASE 2 -- CRITICAL STATE  (1:10 - 3:00)" "Red"
+Write-Step "PHASE 2 -- CRITICAL STATE  (1:27 - 3:29)" "Red"
 Write-Info "Move mouse: health=12 > PG offline > HTTP timeout"
 Write-Info "           > services stopped > JDBC all zeros"
 Write-Info "           > topology red nodes > 2 incident cards"
 Write-Host ""
 
-Wait-UntilCue $CUE_RECOVERY "recovery transition at 03:00"
+Wait-UntilCue $CUE_RECOVERY "recovery transition at 03:29"
 
 # ── RECOVERY (3:16) ───────────────────────────────────────────────────────────
 
@@ -249,11 +249,11 @@ Write-Host "  Dashboard: HEALTHY state restored." -ForegroundColor Green
 
 # ── PHASE 3: RECOVERY (3:16 - 4:10) ─────────────────────────────────────────
 
-Write-Step "PHASE 3 -- RECOVERY  (3:16 - 4:15)" "Green"
+Write-Step "PHASE 3 -- RECOVERY  (3:49 - 4:50)" "Green"
 Write-Info "Move mouse: health climbing > 0 incidents > JDBC restored > all green"
 Write-Host ""
 
-Wait-UntilCue $CUE_END "end of recording at 04:15"
+Wait-UntilCue $CUE_END "end of recording at 04:50"
 
 # ── STOP ──────────────────────────────────────────────────────────────────────
 

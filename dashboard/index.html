@@ -502,123 +502,126 @@ function renderEnv(i){
       return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sevColor(s)}" stroke-width=".5" marker-end="url(#da)" opacity=".45"${dash?' stroke-dasharray="3 3"':''}/>`;
     }
 
-    html+=`<svg width="100%" viewBox="0 0 320 520" style="display:block;font-family:monospace">
+    html+=`<svg width="100%" viewBox="0 0 340 540" style="display:block;font-family:monospace">
       <defs>
         <marker id="darr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
           <path d="M2 1L8 5L2 9" fill="none" stroke="#5c647a" stroke-width="1.5" stroke-linecap="round"/>
         </marker>
+        <marker id="darrb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#4a9eff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
       </defs>
 
-      <!-- ── Helper functions via JS template ── -->
-
-      <!-- Row 1: Client Channels -->
-      <rect x="60" y="4" width="200" height="36" rx="5"
+      <!-- ── Row 1: External clients (Web + Mobile) ── -->
+      <rect x="10" y="4" width="140" height="34" rx="5"
             fill="#1a1e28" stroke="${sevColor(gwS)}" stroke-width=".5"/>
-      <text x="160" y="17" text-anchor="middle" fill="${sevColor(gwS)}" font-size="9" font-weight="500">Client Channels</text>
-      <text x="160" y="29" text-anchor="middle" fill="#5c647a" font-size="8">Web · Mobile · Kiosk</text>
+      <text x="80" y="16" text-anchor="middle" fill="${sevColor(gwS)}" font-size="8" font-weight="500">Web Booking</text>
+      <text x="80" y="27" text-anchor="middle" fill="#5c647a" font-size="7">Citizen · Appointments</text>
 
-      <!-- Arrow: Client → API GW -->
-      <line x1="160" y1="40" x2="160" y2="56" stroke="${sevColor(gwS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
+      <rect x="160" y="4" width="100" height="34" rx="5"
+            fill="#1a1e28" stroke="${sevColor(gwS)}" stroke-width=".5"/>
+      <text x="210" y="16" text-anchor="middle" fill="${sevColor(gwS)}" font-size="8" font-weight="500">Mobile</text>
+      <text x="210" y="27" text-anchor="middle" fill="#5c647a" font-size="7">Virtual Queue</text>
 
-      <!-- Row 2: API Gateway -->
-      <rect x="70" y="58" width="180" height="46" rx="5"
+      <!-- Internal clients (Kiosk + Counter) — direct Orchestra auth -->
+      <rect x="270" y="4" width="64" height="34" rx="5"
+            fill="#141720" stroke="rgba(74,158,255,.3)" stroke-width=".5"/>
+      <text x="302" y="16" text-anchor="middle" fill="#4a9eff" font-size="8" font-weight="500">Kiosk</text>
+      <text x="302" y="27" text-anchor="middle" fill="#5c647a" font-size="7">Local auth</text>
+
+      <!-- Arrows: Web + Mobile → API GW -->
+      <line x1="80"  y1="38" x2="110" y2="58" stroke="${sevColor(gwS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
+      <line x1="210" y1="38" x2="145" y2="58" stroke="${sevColor(gwS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
+
+      <!-- Arrow: Kiosk → Orchestra (direct, bypass GW) -->
+      <line x1="302" y1="38" x2="302" y2="130" stroke="#4a9eff" stroke-width=".5" stroke-dasharray="4 3" marker-end="url(#darrb)" opacity=".4"/>
+      <text x="316" y="90" fill="#4a9eff" font-size="6" opacity=".6">direct</text>
+      <text x="316" y="100" fill="#4a9eff" font-size="6" opacity=".6">auth</text>
+
+      <!-- ── Row 2: API Gateway ── -->
+      <rect x="55" y="60" width="180" height="44" rx="5"
             fill="#1a1e28" stroke="${sevColor(gwS)}" stroke-width="${gwS==='crit'?1.5:.5}"/>
-      ${gwS==='crit'?`<rect x="70" y="58" width="180" height="46" rx="5" fill="${sevColor(gwS)}" opacity=".04"/>`:''}
-      <text x="160" y="72" text-anchor="middle" fill="${sevColor(gwS)}" font-size="9" font-weight="500">API Gateway</text>
-      <text x="160" y="83" text-anchor="middle" fill="#5c647a" font-size="8">Auth · Routing · REST</text>
-      <text x="160" y="94" text-anchor="middle" fill="#5c647a" font-size="7">${gw?gw.state.toLowerCase()+' · '+gw.memory_mb.toFixed(0)+'MB':'unknown'}</text>
+      ${gwS==='crit'?`<rect x="55" y="60" width="180" height="44" rx="5" fill="${sevColor(gwS)}" opacity=".04"/>`:''}
+      <text x="145" y="74" text-anchor="middle" fill="${sevColor(gwS)}" font-size="9" font-weight="500">API Gateway</text>
+      <text x="145" y="85" text-anchor="middle" fill="#5c647a" font-size="7">Auth · Rate limiting · Routing</text>
+      <text x="145" y="96" text-anchor="middle" fill="#5c647a" font-size="7">${gw?gw.state.toLowerCase()+' · '+gw.memory_mb.toFixed(0)+'MB':'unknown'}</text>
 
-      <!-- Arrows: API GW → 3 engines -->
-      <line x1="100" y1="104" x2="52" y2="122" stroke="${sevColor(qpS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
-      <line x1="160" y1="104" x2="160" y2="122" stroke="${sevColor(qpS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
-      <line x1="220" y1="104" x2="268" y2="122" stroke="${sevColor(qpS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
+      <!-- Arrow: API GW → Orchestra Core -->
+      <line x1="145" y1="104" x2="175" y2="132" stroke="${sevColor(qpS)}" stroke-width=".5" marker-end="url(#darr)" opacity=".5"/>
 
-      <!-- Row 3: Three engines -->
-      <!-- Orchestra Core -->
-      <rect x="2" y="124" width="102" height="48" rx="5"
+      <!-- ── Row 3: Orchestra Central (Platform) ── -->
+      <rect x="90" y="134" width="220" height="44" rx="5"
             fill="#1a1e28" stroke="${sevColor(qpS)}" stroke-width="${qpS==='crit'?1.5:.5}"/>
-      ${qpS==='crit'?`<rect x="2" y="124" width="102" height="48" rx="5" fill="${sevColor(qpS)}" opacity=".04"/>`:''}
-      <text x="53" y="138" text-anchor="middle" fill="${sevColor(qpS)}" font-size="8" font-weight="500">Orchestra Core</text>
-      <text x="53" y="149" text-anchor="middle" fill="#5c647a" font-size="7">Queue · Workflow</text>
-      <text x="53" y="160" text-anchor="middle" fill="#5c647a" font-size="7">${qp?qp.state.toLowerCase()+' · '+qp.memory_mb.toFixed(0)+'MB':'unknown'}</text>
+      ${qpS==='crit'?`<rect x="90" y="134" width="220" height="44" rx="5" fill="${sevColor(qpS)}" opacity=".04"/>`:''}
+      <text x="200" y="149" text-anchor="middle" fill="${sevColor(qpS)}" font-size="9" font-weight="500">Orchestra Central</text>
+      <text x="200" y="161" text-anchor="middle" fill="#5c647a" font-size="7">Queue · Workflow · Appointments · Messaging</text>
+      <text x="200" y="172" text-anchor="middle" fill="#5c647a" font-size="7">${qp?qp.state.toLowerCase()+' · '+qp.memory_mb.toFixed(0)+'MB heap='+qp.heap_used_pct.toFixed(0)+'%':'unknown'}</text>
 
-      <!-- Appointment Engine -->
-      <rect x="109" y="124" width="102" height="48" rx="5"
-            fill="#1a1e28" stroke="${sevColor(qpS)}" stroke-width="${qpS==='crit'?1.5:.5}"/>
-      <text x="160" y="138" text-anchor="middle" fill="${sevColor(qpS)}" font-size="8" font-weight="500">Appointment Engine</text>
-      <text x="160" y="149" text-anchor="middle" fill="#5c647a" font-size="7">Booking · Calendar</text>
-      <text x="160" y="160" text-anchor="middle" fill="#5c647a" font-size="7">qp_calendar: ${jdbcCal} JDBC</text>
+      <!-- Counter App direct to Orchestra -->
+      <rect x="10" y="134" width="72" height="44" rx="5"
+            fill="#141720" stroke="rgba(74,158,255,.3)" stroke-width=".5"/>
+      <text x="46" y="150" text-anchor="middle" fill="#4a9eff" font-size="8" font-weight="500">Counter</text>
+      <text x="46" y="161" text-anchor="middle" fill="#4a9eff" font-size="7">App</text>
+      <text x="46" y="172" text-anchor="middle" fill="#5c647a" font-size="6">Staff · local auth</text>
+      <line x1="82"  y1="156" x2="90"  y2="156" stroke="#4a9eff" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#darrb)" opacity=".4"/>
 
-      <!-- Messaging Engine -->
-      <rect x="216" y="124" width="102" height="48" rx="5"
-            fill="#1a1e28" stroke="${sevColor(qpS)}" stroke-width="${qpS==='crit'?1.5:.5}"/>
-      <text x="267" y="138" text-anchor="middle" fill="${sevColor(qpS)}" font-size="8" font-weight="500">Messaging Engine</text>
-      <text x="267" y="149" text-anchor="middle" fill="#5c647a" font-size="7">SMS · Email · Notify</text>
-      <text x="267" y="160" text-anchor="middle" fill="#5c647a" font-size="7">qp_app: ${jdbcApp} JDBC</text>
+      <!-- Kiosk direct arrow lands at Orchestra -->
+      <line x1="302" y1="130" x2="312" y2="156" stroke="#4a9eff" stroke-width=".5" stroke-dasharray="4 3" marker-end="url(#darrb)" opacity=".4"/>
 
-      <!-- Arrows: engines → DBs -->
-      <line x1="53"  y1="172" x2="100" y2="198" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".5" ${!dbOk?'stroke-dasharray="3 3"':''}/>
-      <line x1="160" y1="172" x2="120" y2="198" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".5" ${!dbOk?'stroke-dasharray="3 3"':''}/>
-      <line x1="267" y1="172" x2="220" y2="198" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".5" ${!dbOk?'stroke-dasharray="3 3"':''}/>
-      <line x1="267" y1="172" x2="245" y2="198" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".5" ${!dbOk?'stroke-dasharray="3 3"':''}/>
+      <!-- Arrows: Orchestra → DBs -->
+      <line x1="160" y1="178" x2="115" y2="210" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".5" ${!dbOk?'stroke-dasharray="3 3"':''}/>
+      <line x1="240" y1="178" x2="255" y2="210" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".5" ${!dbOk?'stroke-dasharray="3 3"':''}/>
 
-      <!-- Row 4: Operational DB + Statistics DB -->
-      <!-- Operational DB -->
-      <rect x="50" y="200" width="120" height="46" rx="5"
+      <!-- ── Row 4: Operational DB + Statistics DB ── -->
+      <rect x="30" y="212" width="150" height="46" rx="5"
             fill="${dbOk&&jdbcC>0?'#1a1e28':'rgba(239,68,68,.06)'}"
             stroke="${sevColor(dbOk&&jdbcC>0?'ok':'crit')}" stroke-width="${dbOk&&jdbcC>0?.5:1.5}"/>
-      <text x="110" y="214" text-anchor="middle" fill="${sevColor(dbOk&&jdbcC>0?'ok':'crit')}" font-size="8" font-weight="500">Operational DB</text>
-      <text x="110" y="225" text-anchor="middle" fill="#5c647a" font-size="7">qp_central · qp_agent</text>
-      <text x="110" y="236" text-anchor="middle" fill="${sevColor(dbOk&&jdbcC>0?'blue':'crit')}" font-size="8">${jdbcC+jdbcA} JDBC</text>
+      <text x="105" y="227" text-anchor="middle" fill="${sevColor(dbOk&&jdbcC>0?'ok':'crit')}" font-size="8" font-weight="500">Operational DB</text>
+      <text x="105" y="238" text-anchor="middle" fill="#5c647a" font-size="7">qp_central · qp_agent · qp_calendar</text>
+      <text x="105" y="250" text-anchor="middle" fill="${sevColor(dbOk&&jdbcC>0?'blue':'crit')}" font-size="8">${jdbcC+jdbcA+jdbcCal} JDBC connections</text>
 
-      <!-- Statistics DB -->
-      <rect x="190" y="200" width="120" height="46" rx="5"
+      <rect x="200" y="212" width="130" height="46" rx="5"
             fill="${dbOk&&jdbcS>0?'#1a1e28':'rgba(239,68,68,.06)'}"
             stroke="${sevColor(dbOk&&jdbcS>0?'ok':'crit')}" stroke-width="${dbOk&&jdbcS>0?.5:1.5}"/>
-      <text x="250" y="214" text-anchor="middle" fill="${sevColor(dbOk&&jdbcS>0?'ok':'crit')}" font-size="8" font-weight="500">Statistics DB</text>
-      <text x="250" y="225" text-anchor="middle" fill="#5c647a" font-size="7">statdb</text>
-      <text x="250" y="236" text-anchor="middle" fill="${sevColor(dbOk&&jdbcS>0?'blue':'crit')}" font-size="8">${jdbcS} JDBC</text>
-
-      <!-- Arrows: Operational DB → client endpoints -->
-      <line x1="80"  y1="246" x2="30"  y2="272" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" ${!dbOk?'stroke-dasharray="3 3"':''}/>
-      <line x1="110" y1="246" x2="110" y2="272" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" ${!dbOk?'stroke-dasharray="3 3"':''}/>
-      <line x1="140" y1="246" x2="190" y2="272" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" ${!dbOk?'stroke-dasharray="3 3"':''}/>
-
-      <!-- Row 5: Client endpoints -->
-      <rect x="2"   y="274" width="60" height="32" rx="4" fill="#141720" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
-      <text x="32"  y="287" text-anchor="middle" fill="#5c647a" font-size="7" font-weight="500">Kiosks</text>
-      <text x="32"  y="298" text-anchor="middle" fill="#3a4152" font-size="7">Ticket</text>
-
-      <rect x="80"  y="274" width="60" height="32" rx="4" fill="#141720" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
-      <text x="110" y="287" text-anchor="middle" fill="#5c647a" font-size="7" font-weight="500">Counter App</text>
-      <text x="110" y="298" text-anchor="middle" fill="#3a4152" font-size="7">Staff</text>
-
-      <rect x="158" y="274" width="60" height="32" rx="4" fill="#141720" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
-      <text x="188" y="287" text-anchor="middle" fill="#5c647a" font-size="7" font-weight="500">Displays</text>
-      <text x="188" y="298" text-anchor="middle" fill="#3a4152" font-size="7">Queue</text>
-
-      <!-- Web Booking separate -->
-      <rect x="236" y="274" width="80" height="32" rx="4"
-            fill="${wbS==='crit'?'rgba(239,68,68,.06)':'#141720'}"
-            stroke="${wbS==='crit'?sevColor('crit'):'rgba(255,255,255,.08)'}" stroke-width=".5"/>
-      <text x="276" y="287" text-anchor="middle" fill="${wbS==='crit'?sevColor('crit'):'#5c647a'}" font-size="7" font-weight="500">Web Booking</text>
-      <text x="276" y="298" text-anchor="middle" fill="#3a4152" font-size="7">${wb?wb.state.toLowerCase():'unknown'}</text>
+      <text x="265" y="227" text-anchor="middle" fill="${sevColor(dbOk&&jdbcS>0?'ok':'crit')}" font-size="8" font-weight="500">Statistics DB</text>
+      <text x="265" y="238" text-anchor="middle" fill="#5c647a" font-size="7">statdb</text>
+      <text x="265" y="250" text-anchor="middle" fill="${sevColor(dbOk&&jdbcS>0?'blue':'crit')}" font-size="8">${jdbcS} JDBC · ETL pipeline</text>
 
       <!-- Arrow: Statistics DB → BI -->
-      <line x1="250" y1="246" x2="250" y2="332" stroke="${sevColor(dbOk?'blue':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" stroke-dasharray="4 3"/>
-      <text x="260" y="310" fill="#5c647a" font-size="7">ETL</text>
+      <line x1="265" y1="258" x2="265" y2="310" stroke="${sevColor(dbOk?'blue':'crit')}" stroke-width=".5" stroke-dasharray="4 3" marker-end="url(#darr)" opacity=".4"/>
 
-      <!-- Row 6: BI / Historical Reports -->
-      <rect x="170" y="334" width="160" height="38" rx="5"
+      <!-- Arrows: Operational DB → client endpoints -->
+      <line x1="80"  y1="258" x2="46"  y2="290" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" ${!dbOk?'stroke-dasharray="3 3"':''}/>
+      <line x1="105" y1="258" x2="105" y2="290" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" ${!dbOk?'stroke-dasharray="3 3"':''}/>
+      <line x1="150" y1="258" x2="170" y2="290" stroke="${sevColor(dbOk?'ok':'crit')}" stroke-width=".5" marker-end="url(#darr)" opacity=".4" ${!dbOk?'stroke-dasharray="3 3"':''}/>
+
+      <!-- ── Row 5: Client endpoints ── -->
+      <rect x="4"   y="292" width="66" height="30" rx="4" fill="#141720" stroke="rgba(74,158,255,.25)" stroke-width=".5"/>
+      <text x="37"  y="305" text-anchor="middle" fill="#4a9eff" font-size="7" font-weight="500">Kiosk Systems</text>
+      <text x="37"  y="316" text-anchor="middle" fill="#5c647a" font-size="6">Ticket · Display</text>
+
+      <rect x="76"  y="292" width="66" height="30" rx="4" fill="#141720" stroke="rgba(74,158,255,.25)" stroke-width=".5"/>
+      <text x="109" y="305" text-anchor="middle" fill="#4a9eff" font-size="7" font-weight="500">Counter App</text>
+      <text x="109" y="316" text-anchor="middle" fill="#5c647a" font-size="6">Staff · Serving</text>
+
+      <rect x="148" y="292" width="66" height="30" rx="4" fill="#141720" stroke="rgba(74,158,255,.25)" stroke-width=".5"/>
+      <text x="181" y="305" text-anchor="middle" fill="#4a9eff" font-size="7" font-weight="500">Queue Display</text>
+      <text x="181" y="316" text-anchor="middle" fill="#5c647a" font-size="6">Signage · Boards</text>
+
+      <!-- ── BI / Reports ── -->
+      <rect x="180" y="312" width="150" height="34" rx="5"
             fill="#141720" stroke="${sevColor('blue')}40" stroke-width=".5"/>
-      <text x="250" y="349" text-anchor="middle" fill="${sevColor('blue')}" font-size="8" font-weight="500" opacity=".8">BI / Historical Reports</text>
-      <text x="250" y="362" text-anchor="middle" fill="#5c647a" font-size="7">Analytics · KPIs · Trends</text>
+      <text x="255" y="326" text-anchor="middle" fill="${sevColor('blue')}" font-size="8" font-weight="500" opacity=".8">BI / Historical Reports</text>
+      <text x="255" y="338" text-anchor="middle" fill="#5c647a" font-size="7">Analytics · KPIs · Trends</text>
 
-      <!-- PostgreSQL summary bar at bottom -->
-      <rect x="2" y="390" width="316" height="26" rx="4" fill="#0f1117" stroke="rgba(255,255,255,.06)" stroke-width=".5"/>
-      <text x="12" y="407" fill="#5c647a" font-size="7">PostgreSQL</text>
-      <text x="75" y="407" fill="${sevColor(pgSev)}" font-size="7">${pg?pg.connection_pct.toFixed(1)+'% pool':''}</text>
-      <text x="140" y="407" fill="#5c647a" font-size="7">·  qp_central ${jdbcC}  ·  statdb ${jdbcS}  ·  qp_agent ${jdbcA}  ·  qp_calendar ${jdbcCal}  ·  qp_app ${jdbcApp}</text>
+      <!-- Legend -->
+      <rect x="4" y="364" width="328" height="42" rx="4" fill="#0f1117" stroke="rgba(255,255,255,.05)" stroke-width=".5"/>
+      <text x="12" y="376" fill="#5c647a" font-size="7">Legend:</text>
+      <line x1="58" y1="373" x2="82" y2="373" stroke="#5c647a" stroke-width=".5" marker-end="url(#darr)"/>
+      <text x="86" y="376" fill="#5c647a" font-size="7">via API Gateway</text>
+      <line x1="168" y1="373" x2="192" y2="373" stroke="#4a9eff" stroke-width=".5" stroke-dasharray="3 3" marker-end="url(#darrb)"/>
+      <text x="196" y="376" fill="#4a9eff" font-size="7">direct Orchestra auth</text>
+      <text x="12" y="390" fill="#5c647a" font-size="7">PostgreSQL: ${pg?pg.connection_pct.toFixed(1)+'% pool · '+pg.active_connections+' active':'unavailable'} · qp_central ${jdbcC} · statdb ${jdbcS} · qp_agent ${jdbcA} · qp_calendar ${jdbcCal} · qp_app ${jdbcApp}</text>
     </svg>`;
   }else{
     html+=`<div style="font-family:monospace;font-size:10px;color:var(--t3);padding:8px 0">no windows data</div>`;
