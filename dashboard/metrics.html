@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Vorsa — Metrics & SLO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0b0d11;--bg1:#0f1117;--bg2:#141720;--bg3:#1a1e28;--bg4:#1f2435;
+  --b:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.1);
+  --t1:#e8eaf0;--t2:#9ba3b8;--t3:#5c647a;
+  --ok:#22c97a;--warn:#f0a42e;--crit:#ef4444;--blue:#4a9eff;--purple:#7c6ef7;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg0);color:var(--t1);font-family:var(--sans);font-size:13px;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg1)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+@keyframes ping{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(2);opacity:0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes slidein{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;background:var(--bg1);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100;height:44px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-name{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--t1)}
+.brand-tag{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;border-left:1px solid var(--b);padding-left:12px}
+.topbar-r{display:flex;align-items:center;gap:14px}
+.clock{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.pulse-wrap{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
+.refresh-btn{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:4px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;transition:all .15s}
+.refresh-btn:hover{color:var(--t1);border-color:rgba(255,255,255,.2)}
+
+.layout{display:grid;grid-template-columns:185px 1fr;min-height:calc(100vh - 44px)}
+.sidebar{background:var(--bg1);border-right:1px solid var(--b);padding:14px 0;overflow-y:auto}
+.sb-sec{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;padding:0 14px 6px}
+.sb-env{display:flex;align-items:center;gap:7px;padding:7px 14px;background:var(--bg2);border-left:2px solid var(--purple);cursor:pointer}
+.sb-env-inactive{display:flex;align-items:center;gap:7px;padding:7px 14px;cursor:pointer;border-left:2px solid transparent}
+.sb-env-inactive:hover{background:var(--bg2)}
+.sb-link{display:flex;align-items:center;gap:7px;padding:5px 14px;cursor:pointer}
+.sb-link span{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.sb-link:hover span{color:var(--t2)}
+.sb-sep{height:1px;background:var(--b);margin:8px 14px}
+.dot{position:relative;width:8px;height:8px;flex-shrink:0}
+.dot-i{width:8px;height:8px;border-radius:50%;position:absolute}
+.dot-p{width:8px;height:8px;border-radius:50%;position:absolute;animation:ping 1.5s ease-in-out infinite}
+
+.main{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.panel{background:var(--bg2);border:1px solid var(--b);border-radius:8px;padding:11px 13px;animation:slidein .3s ease}
+.ptitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.ptitle-lbl{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase}
+
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row2{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.row3b{display:grid;grid-template-columns:260px 1fr 1fr;gap:10px;align-items:start}
+
+.slo-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b)}
+.slo-row:last-child{border-bottom:none}
+.slo-label{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.slo-val{font-family:var(--mono);font-size:11px;font-weight:500}
+.slo-bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden;width:80px}
+.slo-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--b)}
+.mrow:last-child{border-bottom:none}
+.mkey{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.mval{font-family:var(--mono);font-size:11px;font-weight:500}
+
+.svc-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--b)}
+.svc-row:last-child{border-bottom:none}
+.svc-name{font-family:var(--mono);font-size:10px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.svc-mem{font-family:var(--mono);font-size:9px;color:var(--t3);min-width:66px;text-align:right}
+
+.tl-event{display:flex;align-items:flex-start;gap:9px;padding:6px 0;position:relative;animation:slidein .3s ease}
+.tl-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-family:var(--mono)}
+.tl-ts{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.tl-msg{font-family:var(--mono);font-size:10px;color:var(--t1);margin-top:1px}
+.tl-sub{font-size:10px;color:var(--t3);margin-top:1px}
+
+.inc-card{border-radius:6px;padding:9px 11px;margin-bottom:7px;animation:slidein .3s ease}
+.rca-act{font-family:var(--mono);font-size:10px;color:var(--t2);padding:3px 6px 3px 12px;background:var(--bg3);border-radius:4px;margin-bottom:3px;position:relative}
+.rca-act::before{content:'›';position:absolute;left:4px;color:var(--purple)}
+.fp-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--b)}
+.slo-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b)}
+.slo-row:last-child{border-bottom:none}
+.slo-label{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.slo-val{font-family:var(--mono);font-size:11px;font-weight:500}
+.slo-bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden;width:80px}
+.slo-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.fp-row:last-child{border-bottom:none}
+
+.error-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:16px;margin:20px;font-family:var(--mono);font-size:11px;color:var(--crit);line-height:1.7}
+.loading-box{display:flex;align-items:center;justify-content:center;height:200px;font-family:var(--mono);font-size:11px;color:var(--t3)}
+</style>
+<style>
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat-card{background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:10px 12px;text-align:center}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:600;line-height:1}
+.stat-lbl{font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+.mcontent{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.chart-wrap{height:72px;position:relative;margin-top:8px}
+canvas{display:block;width:100%!important}
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--b);text-align:left;white-space:nowrap}
+td{font-family:var(--mono);font-size:10px;color:var(--t2);padding:5px 8px;border-bottom:1px solid var(--b)}
+td:first-child{color:var(--t1)}
+tr:last-child td{border-bottom:none}
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b)}
+.mrow:last-child{border-bottom:none}
+.mkey{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.mval{font-family:var(--mono);font-size:11px;font-weight:500}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <img src="vorsa_logo.png" alt="Vorsa" style="height:24px;width:auto" onerror="this.style.display='none';document.getElementById('brand-txt-m').style.display='block'">
+    <span id="brand-txt-m" style="display:none;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--t1)">Vorsa <span style="color:var(--purple)">//</span> metrics</span>
+    <span class="brand-tag">operational metrics &amp; slo</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-family:var(--mono);font-size:10px;color:var(--t3)" id="m-clock"></span>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--t3);border-left:1px solid var(--b);padding-left:10px">northvale-council</span>
+    <a href="index.html" style="font-family:var(--mono);font-size:10px;color:var(--t2);text-decoration:none;padding:3px 10px;border:1px solid var(--b);border-radius:4px;background:var(--bg3)">← dashboard</a>
+  </div>
+</div>
+<div style="display:flex;height:calc(100vh - 44px);overflow:hidden">
+<div class="sidebar" id="sidebar">
+    <div class="sb-sec">environments</div>
+    <div id="env-list"></div>
+    <div class="sb-sep"></div>
+    <div class="sb-sec">platform</div>
+    <div class="sb-link" onclick="window.location.href='index.html'"><span>telemetry</span></div>
+    <div class="sb-link" onclick="window.open('../incidents/','_blank')"><span>incidents</span></div>
+    <div class="sb-link" onclick="window.open('../logs/alerts.jsonl','_blank')"><span>alert log</span></div>
+    <div class="sb-sep"></div>
+    <div class="sb-sec">collectors</div>
+    <div id="collector-list"></div>
+    <div class="sb-sep"></div>
+    <div class="sb-sec">vorsa</div>
+    <div class="sb-link"><span>correlation rules</span></div>
+    <div class="sb-link"><span>runbooks</span></div>
+    <div class="sb-link"><span>dependencies</span></div>
+  </div>
+  <div class="mcontent" id="mcontent">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--t3);padding:24px;text-align:center">
+      Loading metrics...
+    </div>
+  </div>
+</div>
+
+<script>
+let samples = [];
+
+function sC(s){ return s==='ok'?'var(--ok)':s==='at_risk'?'var(--amber)':'var(--crit)'; }
+function sBg(s){ return s==='ok'?'rgba(34,201,122,.1)':s==='at_risk'?'rgba(240,164,46,.1)':'rgba(239,68,68,.1)'; }
+function sBd(s){ return s==='ok'?'rgba(34,201,122,.25)':s==='at_risk'?'rgba(240,164,46,.25)':'rgba(239,68,68,.25)'; }
+function badge(t,s){
+  return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;background:'+sBg(s)+';color:'+sC(s)+';border:1px solid '+sBd(s)+'">'+t+'</span>';
+}
+
+function sparkline(canvasId, data, color){
+  var canvas = document.getElementById(canvasId);
+  if(!canvas||!data.length) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.offsetWidth, h = canvas.offsetHeight;
+  canvas.width = w; canvas.height = h;
+  var max = Math.max.apply(null,data.concat([1]));
+  var min = Math.min.apply(null,data.concat([0]));
+  var range = max - min || 1;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle = color||'#4a9eff';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  data.forEach(function(v,i){
+    var x = (i/(data.length-1))*w;
+    var y = h - ((v-min)/range)*(h-6) - 3;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+async function loadMetrics(){
+  try {
+    var res = await fetch('../logs/metrics.jsonl?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var text = await res.text();
+    samples = text.trim().split('\n')
+      .filter(function(l){return l.trim();})
+      .map(function(l){ try{return JSON.parse(l);}catch(e){return null;} })
+      .filter(Boolean)
+      .slice(-1440);
+    render();
+  } catch(e) {
+    document.getElementById('mcontent').innerHTML =
+      '<div style="font-family:var(--mono);font-size:11px;color:var(--t3);padding:24px;text-align:center">'+
+      'No metrics data yet.<br>Run <code style=\'color:var(--ok)\'>python control_plane.py</code> to start collecting.<br><br><span style=\'color:var(--crit)\'>'+e.message+'</span></div>';
+  }
+}
+
+function avg(arr){ return arr.length?(arr.reduce(function(a,b){return a+b;},0)/arr.length):0; }
+
+function render(){
+  if(!samples.length){
+    document.getElementById('mcontent').innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--t3);padding:24px;text-align:center">No samples yet.</div>';
+    return;
+  }
+
+  var latest = samples[samples.length-1];
+  var availVals = samples.map(function(s){return s.availability_pct||100;});
+  var latVals   = samples.map(function(s){return s.latency_ms||0;});
+  var pgVals    = samples.map(function(s){return s.pg_connection_pct||0;});
+  var heapVals  = samples.map(function(s){return s.platform_heap_pct||0;});
+  var hsVals    = samples.map(function(s){return s.health_score||0;});
+
+  var pct_ok  = samples.filter(function(s){return s.health_label==='HEALTHY';}).length / samples.length * 100;
+  var poll_ok = samples.length > 0 ? (samples.filter(function(s){return s.poll_success===true||s.poll_success==='true';}).length / samples.length * 100) : 100;
+  var total_inc  = samples.reduce(function(a,s){return a+(s.active_incidents||0);},0);
+  var total_supp = samples.reduce(function(a,s){return a+(s.suppressed_warnings||0);},0);
+
+  var slo_status = latest.slo_overall||'ok';
+
+  var html = '';
+
+  // ── Page title ──
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+    + '<div><div style="font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase">operational metrics &amp; slo · northvale-council</div>'
+    + '<div style="font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:2px">'+samples.length+' samples collected · last updated '+latest.sampled_at.substring(11,19)+' UTC</div></div>'
+    + '<div>'+badge(slo_status.replace('_',' '), slo_status)+'</div>'
+    + '</div>';
+
+  // ── Stat cards ──
+  // Stat card colors — high = good for availability/budget/poll, low = good for latency
+  var availColor  = latest.availability_pct>=99.5 ? 'var(--ok)' : latest.availability_pct>=99.0 ? 'var(--amber)' : 'var(--crit)';
+  var budgetPct = parseFloat(latest.error_budget_remaining||100);
+  var budgetColor = budgetPct>=50 ? 'var(--ok)' : budgetPct>=10 ? 'var(--amber)' : 'var(--crit)';
+  var latColor    = avg(latVals)<300 ? 'var(--ok)' : avg(latVals)<500 ? 'var(--amber)' : 'var(--crit)';
+  var pollColor   = poll_ok>=99 ? 'var(--ok)' : poll_ok>=95 ? 'var(--amber)' : 'var(--crit)';
+
+  html += '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="stat-val" style="color:'+availColor+'">'+parseFloat(latest.availability_pct||100).toFixed(3)+'%</div><div class="stat-lbl">availability</div></div>'
+    + '<div class="stat-card"><div class="stat-val" style="color:'+budgetColor+'">'+parseFloat(latest.error_budget_remaining||100).toFixed(1)+'%</div><div class="stat-lbl">error budget</div></div>'
+    + '<div class="stat-card"><div class="stat-val" style="color:'+latColor+'">'+avg(latVals).toFixed(0)+'ms</div><div class="stat-lbl">avg latency</div></div>'
+    + '<div class="stat-card"><div class="stat-val" style="color:'+pollColor+'">'+poll_ok.toFixed(1)+'%</div><div class="stat-lbl">poll reliability</div></div>'
+    + '</div>';
+
+  // ── SLO panel + incident summary ──
+  html += '<div class="row2">';
+
+  // SLO detail
+  html += '<div class="panel" style="border-left:3px solid '+sC(slo_status)+'">'
+    + '<div class="ptitle"><span class="ptitle-lbl">slo status</span>'+badge(slo_status.replace('_',' '),slo_status)+'</div>'
+    + '<div class="mrow"><span class="mkey">availability</span><span class="mval" style="color:'+(latest.availability_pct>=99.5?'var(--ok)':'var(--warn)')+'">'+parseFloat(latest.availability_pct||100).toFixed(3)+'% <span style="font-size:9px;color:var(--t3)">/ 99.5%</span></span></div>'
+    + '<div class="mrow"><span class="mkey">api latency</span><span class="mval" style="color:'+(latest.latency_ms<500?'var(--ok)':'var(--warn)')+'">'+latest.latency_ms+'ms <span style="font-size:9px;color:var(--t3)">/ 500ms</span></span></div>'
+    + '<div class="mrow"><span class="mkey">pg saturation</span><span class="mval" style="color:'+(latest.pg_connection_pct<75?'var(--ok)':'var(--warn)')+'">'+latest.pg_connection_pct+'% <span style="font-size:9px;color:var(--t3)">/ 75%</span></span></div>'
+    + '<div class="mrow"><span class="mkey">poll success</span><span class="mval" style="color:'+(poll_ok>=99?'var(--ok)':'var(--warn)')+'">'+poll_ok.toFixed(1)+'%</span></div>'
+    + '<div class="mrow"><span class="mkey">error budget remaining</span><span class="mval" style="color:'+(latest.error_budget_remaining>=50?'var(--ok)':latest.error_budget_remaining>=10?'var(--warn)':'var(--crit)')+'">'+parseFloat(latest.error_budget_remaining||100).toFixed(1)+'%</span></div>'
+    + '</div>';
+
+  // Incident summary
+  var n_healthy  = samples.filter(function(s){return s.health_label==='HEALTHY';}).length;
+  var n_degraded = samples.filter(function(s){return s.health_label==='DEGRADED';}).length;
+  var n_critical = samples.filter(function(s){return s.health_label==='CRITICAL';}).length;
+  var supp_rate  = (total_inc+total_supp>0) ? (total_supp/(total_inc+total_supp)*100).toFixed(1)+'%' : '0.0%';
+
+  html += '<div class="panel">'
+    + '<div class="ptitle"><span class="ptitle-lbl">incident summary (session)</span></div>'
+    + '<div class="mrow"><span class="mkey">total incidents</span><span class="mval" style="color:'+(total_inc>0?'var(--crit)':'var(--ok)')+'">'+total_inc+'</span></div>'
+    + '<div class="mrow"><span class="mkey">suppressed warnings</span><span class="mval" style="color:var(--t2)">'+total_supp+'</span></div>'
+    + '<div class="mrow"><span class="mkey">suppression rate</span><span class="mval" style="color:var(--t2)">'+supp_rate+'</span></div>'
+    + '<div class="mrow"><span class="mkey">healthy polls</span><span class="mval" style="color:var(--ok)">'+n_healthy+'</span></div>'
+    + '<div class="mrow"><span class="mkey">degraded polls</span><span class="mval" style="color:'+(n_degraded>0?'var(--amber)':'var(--t2)')+'">'+n_degraded+'</span></div>'
+    + '<div class="mrow"><span class="mkey">critical polls</span><span class="mval" style="color:'+(n_critical>0?'var(--crit)':'var(--t2)')+'">'+n_critical+'</span></div>'
+    + '</div>';
+
+  html += '</div>';
+
+  // ── Trend charts ──
+  html += '<div class="row2">'
+    + '<div class="panel"><div class="ptitle"><span class="ptitle-lbl">health score</span><span style="font-family:monospace;font-size:9px;color:var(--t3)">'+samples.length+' polls</span></div><div class="chart-wrap"><canvas id="c-hs" height="72"></canvas></div></div>'
+    + '<div class="panel"><div class="ptitle"><span class="ptitle-lbl">api latency (ms)</span></div><div class="chart-wrap"><canvas id="c-lat" height="72"></canvas></div></div>'
+    + '</div>'
+    + '<div class="row2">'
+    + '<div class="panel"><div class="ptitle"><span class="ptitle-lbl">pg connection pool %</span></div><div class="chart-wrap"><canvas id="c-pg" height="72"></canvas></div></div>'
+    + '<div class="panel"><div class="ptitle"><span class="ptitle-lbl">platform jvm heap %</span></div><div class="chart-wrap"><canvas id="c-heap" height="72"></canvas></div></div>'
+    + '</div>';
+
+  // ── Recent samples ──
+  var recent = samples.slice(-20).reverse();
+  html += '<div class="panel">'
+    + '<div class="ptitle"><span class="ptitle-lbl">recent polls — last 20</span></div>'
+    + '<table><thead><tr>'
+    + '<th>time (utc)</th><th>health</th><th>latency</th><th>pg pool</th><th>jvm heap</th><th>incidents</th><th>jdbc</th><th>slo</th>'
+    + '</tr></thead><tbody>'
+    + recent.map(function(s){
+        var hl = s.health_label||'?';
+        var hc = hl==='HEALTHY'?'var(--ok)':hl==='CRITICAL'?'var(--crit)':'var(--amber)';
+        return '<tr>'
+          + '<td>'+s.sampled_at.substring(11,19)+'</td>'
+          + '<td style="color:'+hc+'">'+hl+' ('+s.health_score+')</td>'
+          + '<td style="color:'+(s.latency_ms<500?'var(--ok)':'var(--amber)')+'">'+s.latency_ms+'ms</td>'
+          + '<td style="color:'+(s.pg_connection_pct<75?'var(--ok)':'var(--amber)')+'">'+s.pg_connection_pct+'%</td>'
+          + '<td style="color:'+(s.platform_heap_pct<80?'var(--ok)':'var(--amber)')+'">'+s.platform_heap_pct+'%</td>'
+          + '<td style="color:'+(s.active_incidents>0?'var(--crit)':'var(--t2)')+'">'+s.active_incidents+'</td>'
+          + '<td>'+s.total_jdbc+'</td>'
+          + '<td>'+badge((s.slo_overall||'ok').replace('_',' '),s.slo_overall||'ok')+'</td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div>';
+
+  document.getElementById('mcontent').innerHTML = html;
+
+  setTimeout(function(){
+    sparkline('c-hs',   hsVals,  '#7c6ef7');
+    sparkline('c-lat',  latVals, '#f0a42e');
+    sparkline('c-pg',   pgVals,  '#4a9eff');
+    sparkline('c-heap', heapVals,'#22c97a');
+  }, 60);
+}
+
+// Clock
+function tick(){
+  var el = document.getElementById('m-clock');
+  if(!el) return;
+  var n=new Date(), p=function(x){return String(x).padStart(2,'0');};
+  el.textContent = n.getUTCFullYear()+'-'+p(n.getUTCMonth()+1)+'-'+p(n.getUTCDate())+' '+p(n.getUTCHours())+':'+p(n.getUTCMinutes())+':'+p(n.getUTCSeconds())+' UTC';
+}
+tick(); setInterval(tick,1000);
+
+loadMetrics();
+setInterval(loadMetrics, 60000);
+</script>
+</body>
+</html>

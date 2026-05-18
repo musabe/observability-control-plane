@@ -55,6 +55,12 @@ body{background:var(--bg0);color:var(--t1);font-family:var(--sans);font-size:13p
 .row2{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
 .row3b{display:grid;grid-template-columns:260px 1fr 1fr;gap:10px;align-items:start}
 
+.slo-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b)}
+.slo-row:last-child{border-bottom:none}
+.slo-label{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.slo-val{font-family:var(--mono);font-size:11px;font-weight:500}
+.slo-bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden;width:80px}
+.slo-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
 .mrow{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--b)}
 .mrow:last-child{border-bottom:none}
 .mkey{font-family:var(--mono);font-size:10px;color:var(--t2)}
@@ -75,6 +81,12 @@ body{background:var(--bg0);color:var(--t1);font-family:var(--sans);font-size:13p
 .rca-act{font-family:var(--mono);font-size:10px;color:var(--t2);padding:3px 6px 3px 12px;background:var(--bg3);border-radius:4px;margin-bottom:3px;position:relative}
 .rca-act::before{content:'›';position:absolute;left:4px;color:var(--purple)}
 .fp-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--b)}
+.slo-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--b)}
+.slo-row:last-child{border-bottom:none}
+.slo-label{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.slo-val{font-family:var(--mono);font-size:11px;font-weight:500}
+.slo-bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden;width:80px}
+.slo-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
 .fp-row:last-child{border-bottom:none}
 
 .error-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:16px;margin:20px;font-family:var(--mono);font-size:11px;color:var(--crit);line-height:1.7}
@@ -104,6 +116,7 @@ body{background:var(--bg0);color:var(--t1);font-family:var(--sans);font-size:13p
     <div class="sb-sep"></div>
     <div class="sb-sec">platform</div>
     <div class="sb-link" onclick="window.open('state.json','_blank')"><span>telemetry</span></div>
+    <div class="sb-link" onclick="window.location.href='metrics.html'" style="color:var(--purple)"><span>metrics / slo</span></div>
     <div class="sb-link" onclick="window.open('../incidents/','_blank')"><span>incidents</span></div>
     <div class="sb-link" onclick="window.open('../logs/alerts.jsonl','_blank')"><span>alert log</span></div>
     <div class="sb-sep"></div>
@@ -273,6 +286,48 @@ function selectEnv(i){
 }
 
 // ── Environment renderer ──────────────────────────────────────────────────────
+
+
+function sloC(s){
+  return s==='ok'?'var(--ok)':s==='at_risk'?'var(--amber)':'var(--crit)';
+}
+
+function sloBadge(s){
+  var t = s==='ok'?'on track':s==='at_risk'?'at risk':'breached';
+  var bg = s==='ok'?'rgba(34,201,122,.1)':s==='at_risk'?'rgba(240,164,46,.1)':'rgba(239,68,68,.1)';
+  var bd = s==='ok'?'rgba(34,201,122,.25)':s==='at_risk'?'rgba(240,164,46,.25)':'rgba(239,68,68,.25)';
+  var c = sloC(s);
+  return '<span style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:3px;background:'+bg+';color:'+c+';border:1px solid '+bd+'">'+t+'</span>';
+}
+
+function renderSloPanel(slo){
+  if(!slo) return '';
+  var oc = sloC(slo.overall_status);
+  var obg = slo.overall_status==='ok'?'rgba(34,201,122,.05)':slo.overall_status==='at_risk'?'rgba(240,164,46,.05)':'rgba(239,68,68,.05)';
+  var budgetC = slo.error_budget_remaining_pct>50?'var(--ok)':slo.error_budget_remaining_pct>10?'var(--amber)':'var(--crit)';
+
+  function row(label, val, sub, status){
+    return '<div class="slo-row">'
+      + '<span class="slo-label">'+label+'</span>'
+      + '<span class="slo-val" style="color:'+sloC(status)+'">'+val
+      + '<span style="font-family:monospace;font-size:8px;color:var(--t3)"> / '+sub+'</span>'
+      + '</span></div>';
+  }
+
+  return '<div class="panel" style="border-left:3px solid '+oc+';background:'+obg+'">'
+    + '<div class="ptitle">'
+    + '<span class="ptitle-lbl">slo status</span>'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + sloBadge(slo.overall_status)
+    + '<a href="metrics.html" style="font-family:monospace;font-size:9px;color:#7c6ef7;text-decoration:none">metrics ↗</a>'
+    + '</div></div>'
+    + row('availability', slo.availability_pct.toFixed(3)+'%', slo.availability_target+'%', slo.availability_status)
+    + row('api latency', slo.latency_current_ms+'ms', slo.latency_budget_ms+'ms', slo.latency_status)
+    + row('pg saturation', slo.pg_current_pct.toFixed(1)+'%', slo.pg_target_pct+'%', slo.pg_status)
+    + '<div class="slo-row"><span class="slo-label">error budget</span>'
+    + '<span class="slo-val" style="color:'+budgetC+'">'+slo.error_budget_remaining_pct.toFixed(1)+'% remaining</span></div>'
+    + '</div>';
+}
 
 function renderEnv(i){
   const env=state.environments[i];
@@ -468,6 +523,9 @@ function renderEnv(i){
     </div>`;
   });
   html+=`</div></div>`;
+
+  // ── SLO Status panel ──
+  html+=renderSloPanel(env.slo||null);
 
   // ── Row 3: Topology + Intelligence + Incidents ──
   html+=`<div class="row3b">`;

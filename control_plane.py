@@ -40,6 +40,7 @@ from integrations.qmatic.qmatic_activity_checks import QmaticActivityDetector
 from integrations.qmatic.qmatic_reporting_checks import QmaticReportingDetector
 from correlators.correlator import CorrelationEngine, CorrelatedIncident
 from correlators.health_score import calculate_health_score
+from correlators.metrics import calculate_slo, append_metric_sample
 from rca.rca_generator import RCAGenerator
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -285,6 +286,32 @@ def poll_environment(env, correlator: CorrelationEngine, rca: RCAGenerator) -> d
     env_state["health_label"] = health_label
     env_state["overall_severity"] = overall_severity
     logger.info("[%s] Health: %d (%s)", env.name, health_score, health_label)
+
+    # ── 9. SLO metrics ──────────────────────────────────────────────────────
+    slo = calculate_slo(env.name, env_state)
+    append_metric_sample(env.name, env_state, slo)
+    env_state["slo"] = {
+        "availability_pct":          slo.availability_pct,
+        "availability_target":       slo.availability_target,
+        "availability_status":       slo.availability_status,
+        "error_budget_remaining_pct": slo.error_budget_remaining_pct,
+        "error_budget_consumed_seconds": slo.error_budget_consumed_seconds,
+        "latency_current_ms":        slo.latency_current_ms,
+        "latency_budget_ms":         slo.latency_budget_ms,
+        "latency_used_pct":          slo.latency_used_pct,
+        "latency_status":            slo.latency_status,
+        "pg_current_pct":            slo.pg_current_pct,
+        "pg_target_pct":             slo.pg_target_pct,
+        "pg_headroom_pct":           slo.pg_headroom_pct,
+        "pg_status":                 slo.pg_status,
+        "poll_success_rate":         slo.poll_success_rate,
+        "poll_status":               slo.poll_status,
+        "incidents_last_24h":        slo.incidents_last_24h,
+        "mttr_avg_minutes":          slo.mttr_avg_minutes,
+        "suppression_rate_pct":      slo.suppression_rate_pct,
+        "overall_status":            slo.overall_status,
+        "calculated_at":             slo.calculated_at,
+    }
 
     return env_state
 
